@@ -5,7 +5,8 @@
     }
 
     var doc = app.activeDocument;
-
+    var AspasAbre = '“«„';
+    var AspasFecha = '”“»';
     // Variáveis para armazenar as escolhas do usuário
     var aspasAbertura = "";
     var aspasFechamento = "";
@@ -357,8 +358,13 @@
         
         executar.onClick = function () {
             win.close();
-            executarCorrecao();
-  
+            app.doScript(
+                executarCorrecao,
+                ScriptLanguage.JAVASCRIPT,
+                undefined,
+                UndoModes.ENTIRE_SCRIPT,
+                "Correções Projeto TRI"
+            );
         };
 
 
@@ -368,9 +374,16 @@
 
     function executarCorrecao() {
 
-    if (aplicarAspas) {contadorAspasAberto = corrigirAspasAbertura(aspasAbertura);
-                       contadorAspasFechado = corrigirAspasFechamento(aspasFechamento);
-        contadorAspas = contadorAspasAberto + contadorAspasFechado;}
+    if (aplicarAspas) {
+
+    removerEspacoDepoisAspaAbertura();    
+    removerEspacoAntesAspaFechamento();
+    
+    contadorAspasAberto = corrigirAspasAbertura(aspasAbertura);
+    contadorAspasFechado = corrigirAspasFechamento(aspasFechamento);
+
+    contadorAspas = contadorAspasAberto + contadorAspasFechado; 
+    }
 
 
     if (trocarPontoPorVirgula) contadorPontoVirgula = substituirPontoPorVirgula();
@@ -453,12 +466,30 @@ function telaResultadoFinal(resumoExecucao) {
     win.show();
 }
 
+/*FUNCOES DE CORRECAO DE ASPAS
+
+    Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
+pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
+
+*/
+
+function removerEspacoDepoisAspaAbertura() {
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+   
+    app.findGrepPreferences.findWhat = '([' + AspasAbre + ']) +(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])';
+    app.changeGrepPreferences.changeTo = '$1'; 
+
+    var changed = doc.changeGrep();
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+    return changed ? changed.length : 0;
+}
+
 function corrigirAspasAbertura(aspasAbertura) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
     var aspasAberturaEscapada = aspasAbertura.replace(/([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1');
 
-    app.findGrepPreferences.findWhat = '(?<=[\\s\\(\\[\\{—])["“”„«]';
+    app.findGrepPreferences.findWhat = '(?<=[\\s\\(\\[\\{—])[' + AspasAbre + ']';
     app.changeGrepPreferences.changeTo = aspasAberturaEscapada;
 
     var changed = doc.changeGrep();
@@ -468,12 +499,35 @@ function corrigirAspasAbertura(aspasAbertura) {
     return count;
 }
 
+function removerEspacoAntesAspaFechamento() {
+    var totalChanges = 0;
+    var changes;
+
+    do {
+        app.findGrepPreferences = app.changeGrepPreferences = null;
+
+        app.findGrepPreferences.findWhat =
+            '([A-Za-zÀ-ÖØ-öø-ÿ0-9])\\s+([' + AspasFecha + '])(?=(\\s+[A-Za-zÀ-ÖØ-öø-ÿ])|\\s*$|\\s*[.,;:!?)]|$)';
+        app.changeGrepPreferences.changeTo = '$1$2';
+
+        var result = doc.changeGrep();
+        changes = result ? result.length : 0;
+        totalChanges += changes;
+
+        app.findGrepPreferences = app.changeGrepPreferences = null;
+
+    } while (changes > 0);
+
+    return totalChanges;
+}
+
+
 function corrigirAspasFechamento(aspasFechamento) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
     var aspasFechamentoEscapada = aspasFechamento.replace(/([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1');
 
-    app.findGrepPreferences.findWhat = '(?<![\\s\\(\\[\\{—])["“”„»]';
+    app.findGrepPreferences.findWhat = '(?<![\\s\\(\\[\\{—])[' + AspasFecha + ']';
     app.changeGrepPreferences.changeTo = aspasFechamentoEscapada;
 
     var changed = doc.changeGrep();
@@ -483,6 +537,7 @@ function corrigirAspasFechamento(aspasFechamento) {
     return count;
 }
 
+/*--------------------------------------------------------------------------*/
 
 //FUNCOES DE EXECUCAO, FAZEM AS ALTERACOES NO ARQUIVO UTILIZANDO GREP
 
@@ -843,33 +898,6 @@ function detectarSiglaPresente(palavra, siglas) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    telaAspas();
+telaAspas();
 
 })();
