@@ -38,7 +38,6 @@
     var contadorEspacoAntesPercent = 0;
     var contadorEspacoDepoisPontoVirgula = 0;
 
-
     // Tela 1 – Escolha do idioma das aspas
     function telaAspas() {
         var win = new Window("dialog", "Passo 1: Escolha de Aspas");
@@ -69,7 +68,7 @@
                 aplicarAspas = true;
                 if (idiomaPolones.value)  { aspasAbertura = "„"; aspasFechamento = "”"; idiomaEscolhido = "Polonês („ ”)"; }
                 if (idiomaAlemao.value)   { aspasAbertura = "„"; aspasFechamento = "“"; idiomaEscolhido = "Alemão („ “)"; }
-                if (idiomaFrances.value)  { aspasAbertura = "«"; aspasFechamento = "»"; idiomaEscolhido = "Francês (« »)"; }
+                if (idiomaFrances.value)  { aspasAbertura = "« "; aspasFechamento = " »"; idiomaEscolhido = "Francês (« »)"; }
                 if (idiomaRusso.value)    { aspasAbertura = "«"; aspasFechamento = "»"; idiomaEscolhido = "Russo (« »)"; }
                 if (idiomaPadrao.value)   { aspasAbertura = "“"; aspasFechamento = "”"; idiomaEscolhido = "Padrão (“ ”)"; }
             }
@@ -82,7 +81,7 @@
     }
 
     // Tela 2 – Escolha das trocas decimais
- function telaDecimais() {
+    function telaDecimais() {
     var win = new Window("dialog", "Passo 2: Troca de Decimais");
     win.orientation = "column";
     win.alignChildren = "left";
@@ -120,7 +119,7 @@
 
     win.center();
     win.show();
-}
+    }
 
 
     function telaEspacos() {
@@ -188,7 +187,6 @@
     return estilos;
     }
     
-
    function telaCapitalizacaoTitulos() {
     var win = new Window("dialog", "Passo 4: Capitalização de Títulos");
     win.orientation = "column";
@@ -299,8 +297,7 @@
 
     win.center();
     win.show();
-}
-
+    }
 
     function telaFinal() {
         var win = new Window("dialog", "Passo 4: Confirmação Final");
@@ -376,11 +373,14 @@
 
     if (aplicarAspas) {
 
-    removerEspacoDepoisAspaAbertura();    
-    removerEspacoAntesAspaFechamento();
+    removerEspacoDepoisAspaAbertura();
+
+    removerEspacoAntesAspaFechamento();    
     
     contadorAspasAberto = corrigirAspasAbertura(aspasAbertura);
+
     contadorAspasFechado = corrigirAspasFechamento(aspasFechamento);
+
 
     contadorAspas = contadorAspasAberto + contadorAspasFechado; 
     }
@@ -441,9 +441,9 @@ if (
     mensagem += "- Nenhuma alteração feita.\n";
 }
     telaResultadoFinal(mensagem);
-}
+    }
 
-function telaResultadoFinal(resumoExecucao) {
+    function telaResultadoFinal(resumoExecucao) {
     var win = new Window("dialog", "Resultado Final!");
     win.orientation = "column";
     win.alignChildren = "left";
@@ -464,7 +464,7 @@ function telaResultadoFinal(resumoExecucao) {
 
     win.center();
     win.show();
-}
+    }
 
 /*FUNCOES DE CORRECAO DE ASPAS
 
@@ -472,34 +472,19 @@ function telaResultadoFinal(resumoExecucao) {
 pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
 
 */
-
-function removerEspacoDepoisAspaAbertura() {
+    function removerEspacoDepoisAspaAbertura() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
-   
-    app.findGrepPreferences.findWhat = '([' + AspasAbre + ']) +(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])';
-    app.changeGrepPreferences.changeTo = '$1'; 
+
+    // Inclui espaços comuns (\x20), inseparáveis (\xA0) e estreitos inseparáveis (\x{202F})
+    app.findGrepPreferences.findWhat = '([' + AspasAbre + '])[\x20\xA0\u202F]+(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])';
+    app.changeGrepPreferences.changeTo = '$1';
 
     var changed = doc.changeGrep();
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return changed ? changed.length : 0;
-}
+    }
 
-function corrigirAspasAbertura(aspasAbertura) {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-
-    var aspasAberturaEscapada = aspasAbertura.replace(/([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1');
-
-    app.findGrepPreferences.findWhat = '(?<=[\\s\\(\\[\\{—])[' + AspasAbre + ']';
-    app.changeGrepPreferences.changeTo = aspasAberturaEscapada;
-
-    var changed = doc.changeGrep();
-    var count = changed ? changed.length : 0;
-
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    return count;
-}
-
-function removerEspacoAntesAspaFechamento() {
+    function removerEspacoAntesAspaFechamento() {
     var totalChanges = 0;
     var changes;
 
@@ -519,10 +504,24 @@ function removerEspacoAntesAspaFechamento() {
     } while (changes > 0);
 
     return totalChanges;
-}
+    }
 
+    function corrigirAspasAbertura(aspasAbertura) {
+    app.findGrepPreferences = app.changeGrepPreferences = null;
 
-function corrigirAspasFechamento(aspasFechamento) {
+    var aspasAberturaEscapada = aspasAbertura.replace(/([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1');
+
+    app.findGrepPreferences.findWhat = '(?<=[\\s\\(\\[\\{—])[' + AspasAbre + ']';
+    app.changeGrepPreferences.changeTo = aspasAberturaEscapada;
+
+    var changed = doc.changeGrep();
+    var count = changed ? changed.length : 0;
+
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+    return count;
+    }
+
+    function corrigirAspasFechamento(aspasFechamento) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
     var aspasFechamentoEscapada = aspasFechamento.replace(/([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g, '\\$1');
@@ -535,24 +534,68 @@ function corrigirAspasFechamento(aspasFechamento) {
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
 /*--------------------------------------------------------------------------*/
 
 //FUNCOES DE EXECUCAO, FAZEM AS ALTERACOES NO ARQUIVO UTILIZANDO GREP
 
+   function substituirPontoPorVirgula() {
+    var doc = app.activeDocument;
+    app.findGrepPreferences = app.changeGrepPreferences = null;
 
-function substituirPontoPorVirgula() {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "(?<=\\d)\\.(?=\\d)";
-    app.changeGrepPreferences.changeTo = ",";
-    var changed = doc.changeGrep();
-    var count = changed ? changed.length : 0;
+    var allMatches = doc.findGrep();
+    var alteradas = 0;
+
+    for (var i = 0; i < allMatches.length; i++) {
+        var match = allMatches[i];
+
+        var appliedStyle = "";
+        var fontStyle = "";
+        var isBold = false;
+
+        try {
+            appliedStyle = match.appliedCharacterStyle.name;
+        } catch (e) {}
+
+        try {
+            fontStyle = match.appliedFont.fontStyleName.toLowerCase().trim();
+            isBold = fontStyle === "bold"; // comparação direta
+        } catch (e) {}
+
+        // Log de depuração
+        alert(
+            "Texto: " + match.contents +
+            "\nEstilo aplicado: " + appliedStyle +
+            "\nEstilo da fonte: " + fontStyle +
+            "\nÉ negrito? " + isBold
+        );
+
+        if (appliedStyle !== "Hiperlink" && !isBold) {
+            match.contents = ",";
+            alteradas++;
+        }
+    }
+
     app.findGrepPreferences = app.changeGrepPreferences = null;
-    return count;
+    return alteradas;
 }
 
-function substituirVirgulaPorPonto() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+    function substituirVirgulaPorPonto() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "(?<=\\d)\\,(?=\\d)";
     app.changeGrepPreferences.changeTo = ".";
@@ -560,9 +603,9 @@ function substituirVirgulaPorPonto() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function removerEspacoAntesVirgula() {
+    function removerEspacoAntesVirgula() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s+,";
     app.changeGrepPreferences.changeTo = ",";
@@ -570,9 +613,9 @@ function removerEspacoAntesVirgula() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function corrigirEspacoDepoisVirgula() {
+    function corrigirEspacoDepoisVirgula() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = ",(?!\\s|\\d)(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])";
     app.changeGrepPreferences.changeTo = ", ";
@@ -580,10 +623,9 @@ function corrigirEspacoDepoisVirgula() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-
-function ajustarEspacoIgual() {
+    function ajustarEspacoIgual() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s*=\\s*";
     app.changeGrepPreferences.changeTo = " = ";
@@ -591,9 +633,9 @@ function ajustarEspacoIgual() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function removerEspacoAntesDoisPontos() {
+    function removerEspacoAntesDoisPontos() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s+:"; // espaços antes do :
     app.changeGrepPreferences.changeTo = ":";
@@ -601,9 +643,9 @@ function removerEspacoAntesDoisPontos() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function corrigirEspacoDepoisDoisPontos() {
+    function corrigirEspacoDepoisDoisPontos() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = ":(?! )(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])"; // : sem espaço depois
     app.changeGrepPreferences.changeTo = ": ";
@@ -611,10 +653,9 @@ function corrigirEspacoDepoisDoisPontos() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-
-function removerEspacoAntesPontoVirgula() {
+    function removerEspacoAntesPontoVirgula() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s+;"; // espaços antes do ;
     app.changeGrepPreferences.changeTo = ";";
@@ -622,9 +663,9 @@ function removerEspacoAntesPontoVirgula() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function corrigirEspacoDepoisPontoVirgula() {
+    function corrigirEspacoDepoisPontoVirgula() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = ";(?! )(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])"; // ; sem espaço depois
     app.changeGrepPreferences.changeTo = "; ";
@@ -632,9 +673,9 @@ function corrigirEspacoDepoisPontoVirgula() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
-function removerEspacoAntesPontoFinal() {
+    function removerEspacoAntesPontoFinal() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s+\\."; // espaços antes do ponto
     app.changeGrepPreferences.changeTo = ".";
@@ -642,7 +683,7 @@ function removerEspacoAntesPontoFinal() {
     var count = changed ? changed.length : 0;
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
-}
+    }
 
     function corrigirEspacoDepoisPontoFinal() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -653,8 +694,6 @@ function removerEspacoAntesPontoFinal() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
     }
-
-
 
     function ajustarEspacoAntesPercentual() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -741,8 +780,7 @@ function removerEspacoAntesPontoFinal() {
 
     win.center();
     win.show();
-    };
-
+    }
 
     function carregarSiglasDoArquivo() {
     try {
@@ -773,9 +811,9 @@ function removerEspacoAntesPontoFinal() {
         alert("Erro ao carregar siglas:\n" + e.message);
         return [];
     }
-}
+    }
 
-function detectarSiglaPresente(palavra, siglas) {
+    function detectarSiglaPresente(palavra, siglas) {
     for (var i = 0; i < siglas.length; i++) {
         var sigla = siglas[i];
         var siglaLower = sigla.toLowerCase();
@@ -798,9 +836,7 @@ function detectarSiglaPresente(palavra, siglas) {
         }
     }
     return null;
-}
-
-
+    }
 
     function aplicarCapitalizacaoComGREP(estilosSelecionados, idiomaSelecionado, capitalizacaoSelecionada) {
     try {
@@ -895,7 +931,7 @@ function detectarSiglaPresente(palavra, siglas) {
         alert("Erro ao aplicar capitalização:\n" + e.message);
         return 0;
     }
-}
+    }
 
 
 telaAspas();
