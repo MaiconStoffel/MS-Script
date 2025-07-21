@@ -540,69 +540,99 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
 
 //FUNCOES DE EXECUCAO, FAZEM AS ALTERACOES NO ARQUIVO UTILIZANDO GREP
 
-   function substituirPontoPorVirgula() {
+
+    function substituirPontoPorVirgula() {
     var doc = app.activeDocument;
-    app.findGrepPreferences = app.changeGrepPreferences = null;
+    app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
 
+    // Expressão GREP: ponto entre dígitos
     app.findGrepPreferences.findWhat = "(?<=\\d)\\.(?=\\d)";
-    var allMatches = doc.findGrep();
-    var alteradas = 0;
+    var substituirPor = ","; 
+    var resultados = doc.findGrep();
 
-    for (var i = 0; i < allMatches.length; i++) {
-        var match = allMatches[i];
+    var alterados = 0;
+    var ignorados = 0;
 
-        var appliedStyle = "";
+    for (var i = 0; i < resultados.length; i++) {
+        var match = resultados[i];
+
         var fontStyle = "";
         var isBold = false;
+        var isItalic = false;
+        var charStyleName = "";
 
         try {
-            appliedStyle = match.appliedCharacterStyle.name;
-        } catch (e) {}
+            fontStyle = match.appliedFont.fontStyleName.toLowerCase();
+            isBold = fontStyle.indexOf("bold") !== -1;
+            isItalic = fontStyle.indexOf("italic") !== -1 || fontStyle.indexOf("oblique") !== -1;
+        } catch (e) {
+            // ignora erros ao detectar estilo
+        }
 
         try {
-            fontStyle = match.appliedFont.fontStyleName.toLowerCase().trim();
-            isBold = fontStyle === "bold"; // comparação direta
-        } catch (e) {}
+            charStyleName = match.appliedCharacterStyle ? match.appliedCharacterStyle.name.toLowerCase() : "";
+        } catch (e) {
+            charStyleName = "";
+        }
 
-        // Log de depuração
-        alert(
-            "Texto: " + match.contents +
-            "\nEstilo aplicado: " + appliedStyle +
-            "\nEstilo da fonte: " + fontStyle +
-            "\nÉ negrito? " + isBold
-        );
-
-        if (appliedStyle !== "Hiperlink" && !isBold) {
-            match.contents = ",";
-            alteradas++;
+        if (!isBold && !isItalic && charStyleName !== "hiperlink") {
+            match.contents = substituirPor;
+            alterados++;
+        } else {
+            ignorados++;
         }
     }
 
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    return alteradas;
-}
+    app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
 
-
-
-
-
-
-
-
-
-
-
-
-
+    return alterados; 
+    }
 
     function substituirVirgulaPorPonto() {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
+    var doc = app.activeDocument;
+    app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
+
+    // Expressão GREP: ponto entre dígitos
     app.findGrepPreferences.findWhat = "(?<=\\d)\\,(?=\\d)";
-    app.changeGrepPreferences.changeTo = ".";
-    var changed = doc.changeGrep();
-    var count = changed ? changed.length : 0;
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    return count;
+    var substituirPor = "."; 
+    var resultados = doc.findGrep();
+
+    var alterados = 0;
+    var ignorados = 0;
+
+    for (var i = 0; i < resultados.length; i++) {
+        var match = resultados[i];
+
+        var fontStyle = "";
+        var isBold = false;
+        var isItalic = false;
+        var charStyleName = "";
+
+        try {
+            fontStyle = match.appliedFont.fontStyleName.toLowerCase();
+            isBold = fontStyle.indexOf("bold") !== -1;
+            isItalic = fontStyle.indexOf("italic") !== -1 || fontStyle.indexOf("oblique") !== -1;
+        } catch (e) {
+            // ignora erros ao detectar estilo
+        }
+
+        try {
+            charStyleName = match.appliedCharacterStyle ? match.appliedCharacterStyle.name.toLowerCase() : "";
+        } catch (e) {
+            charStyleName = "";
+        }
+
+        if (!isBold && !isItalic && charStyleName !== "hiperlink") {
+            match.contents = substituirPor;
+            alterados++;
+        } else {
+            ignorados++;
+        }
+    }
+
+    app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
+
+    return alterados; 
     }
 
     function removerEspacoAntesVirgula() {
@@ -932,7 +962,6 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
         return 0;
     }
     }
-
 
 telaAspas();
 
