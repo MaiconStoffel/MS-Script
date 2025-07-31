@@ -523,12 +523,12 @@ if (
     win.show();
     }
 
-/*FUNCOES DE CORRECAO DE ASPAS
+//FUNCOES DE CORRECAO DE ASPAS
 
-    Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
-pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
+//    Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
+// pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
 
-*/
+
     function removerEspacoDepoisAspaAbertura() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
@@ -599,6 +599,38 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
 
     //------------------------------FUNÇÕES TROCA DE DECIMAIS----------------------------------------
 
+    function estaEmReferenciaCruzada(trecho) {
+    var doc = app.activeDocument;
+    var refs = doc.crossReferenceSources;
+
+    try {
+        for (var i = 0; i < refs.length; i++) {
+            var fonte = refs[i].sourceText;
+
+            if (!fonte || !trecho) continue;
+
+            // Verifica se estão no mesmo story (história de texto)
+            if (fonte.parentStory !== trecho.parentStory) continue;
+
+            // Pega os índices absolutos no story
+            var inicioFonte = fonte.insertionPoints[0].index;
+            var fimFonte = fonte.insertionPoints[-1].index;
+
+            var inicioTrecho = trecho.insertionPoints[0].index;
+            var fimTrecho = trecho.insertionPoints[-1].index;
+
+            if (inicioTrecho >= inicioFonte && fimTrecho <= fimFonte) {
+                return true;
+            }
+        }
+    } catch (e) {
+        $.writeln("Erro na verificação de referência cruzada: " + e.message);
+    }
+
+    return false;
+    }
+
+
     function substituirPontoPorVirgula() {
     var doc = app.activeDocument;
     app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
@@ -614,9 +646,9 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
         // Aplica em todo o documento
         resultados = doc.findGrep();
     } else {
-        // Aplica apenas nas páginas especificadas
+        // Aplica apenas nas páginas especificadas que o user colocou manualmente
         for (var i = 0; i < paginasArray.length; i++) {
-            var pagina = doc.pages[paginasArray[i] - 1]; // pages é 0-based
+            var pagina = doc.pages[paginasArray[i] - 1]; 
             if (!pagina) continue;
 
             var itens = pagina.textFrames;
@@ -633,13 +665,12 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
         }
     }
 
-    // Agora aplica nos resultados coletados
+    //  Agora aplica a substituição
     for (var i = 0; i < resultados.length; i++) {
         var match = resultados[i];
         var fontStyle = "";
         var isBold = false;
         var isItalic = false;
-        var charStyleName = "";
 
         try {
             fontStyle = match.appliedFont.fontStyleName.toLowerCase();
@@ -647,19 +678,14 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
             isItalic = fontStyle.indexOf("italic") !== -1 || fontStyle.indexOf("oblique") !== -1;
         } catch (e) {}
 
-        try {
-            charStyleName = match.appliedCharacterStyle ? match.appliedCharacterStyle.name.toLowerCase() : "";
-        } catch (e) {
-            charStyleName = "";
-        }
-
-        if (!isBold && !isItalic && charStyleName !== "hiperlink") {
+        if (!isBold && !isItalic && !estaEmReferenciaCruzada(match)) {
             match.contents = substituirPor;
             alterados++;
         } else {
             ignorados++;
         }
     }
+
     app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
     return alterados;
     }
@@ -679,9 +705,9 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
         // Aplica em todo o documento
         resultados = doc.findGrep();
     } else {
-        // Aplica apenas nas páginas especificadas
+        // Aplica apenas nas páginas especificadas que o user escreveu
         for (var i = 0; i < paginasArray.length; i++) {
-            var pagina = doc.pages[paginasArray[i] - 1]; // pages é 0-based
+            var pagina = doc.pages[paginasArray[i] - 1];
             if (!pagina) continue;
 
             var itens = pagina.textFrames;
@@ -698,13 +724,12 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
         }
     }
 
-    // Agora aplica nos resultados coletados
+    //  Agora aplica a substituição
     for (var i = 0; i < resultados.length; i++) {
         var match = resultados[i];
         var fontStyle = "";
         var isBold = false;
         var isItalic = false;
-        var charStyleName = "";
 
         try {
             fontStyle = match.appliedFont.fontStyleName.toLowerCase();
@@ -712,19 +737,14 @@ pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de
             isItalic = fontStyle.indexOf("italic") !== -1 || fontStyle.indexOf("oblique") !== -1;
         } catch (e) {}
 
-        try {
-            charStyleName = match.appliedCharacterStyle ? match.appliedCharacterStyle.name.toLowerCase() : "";
-        } catch (e) {
-            charStyleName = "";
-        }
-
-        if (!isBold && !isItalic && charStyleName !== "hiperlink") {
+        if (!isBold && !isItalic && !estaEmReferenciaCruzada(match)) {
             match.contents = substituirPor;
             alterados++;
         } else {
             ignorados++;
         }
     }
+
     app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
     return alterados;
     }
