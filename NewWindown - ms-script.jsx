@@ -6,8 +6,14 @@
 
   var doc = app.activeDocument;
 
-  var AspasAbre = "“«„";
-  var AspasFecha = "”“»";
+  // PL -  „|”
+  // G  -  „|“
+  // F  - « | »
+  // R  -  «|»
+  // PD -  “|”
+
+  var AspasAbre = '“«„';
+  var AspasFecha = '”“»';
   var aspasAbertura = "";
   var aspasFechamento = "";
   var aplicarAspas = false;
@@ -217,8 +223,8 @@
           idiomaEscolhido = "Russo (« »)";
         }
         if (idiomaPadrao.value) {
-          aspasAbertura = "“";
-          aspasFechamento = "”";
+          aspasAbertura = '“';
+          aspasFechamento = '”';
           idiomaEscolhido = "Padrão (“ ”)";
         }
       }
@@ -383,26 +389,35 @@
       undefined,
       "Padronizar espaçamento do Ponto → '.  '"
     );
+
     var chkVirgulaEspaco = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento da Vírgula → ',  '."
     );
+
     var chkIgualEspaco = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento do Igual → '  =  '"
     );
 
+
     var grupo2P = win.add("group");
     grupo2P.orientation = "row";
     grupo2P.alignChildren = "left";
+
     var chkDoisPontosEspaco = grupo2P.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento do Dois-Pontos → ':  '"
     );
-    var chk2PEspacoAntes = grupo2P.add("checkbox", undefined, "Espaço Antes?");
+
+    var chk2PEspacoAntes = grupo2P.add(
+      "checkbox", 
+      undefined, 
+      "Espaço Antes?"
+    );
     chk2PEspacoAntes.helpTip =
       "Se marcado, o espaçamento será aplicado também antes do Dois-Pontos, como em '  :  '";
 
@@ -420,6 +435,7 @@
     var grupoBarra = win.add("group");
     grupoBarra.orientation = "row";
     grupoBarra.alignChildren = "left";
+
     var chkBarraEspaco = grupoBarra.add(
       "checkbox",
       undefined,
@@ -742,13 +758,16 @@
 
   function executarCorrecao() {
     if (aplicarAspas) {
-      removerEspacoDepoisAspaAbertura();
 
-      removerEspacoAntesAspaFechamento();
+      removerEspacoAntesAspaRetas(doc);
+      removerEspacoDepoisAspaRetas(doc);
+      substituirAspasRetas(doc);
 
-      contadorAspasAberto = corrigirAspasAbertura(aspasAbertura);
+      removerEspacoDepoisAspaAbertura(doc);
+      removerEspacoAntesAspaFechamento(doc);
 
-      contadorAspasFechado = corrigirAspasFechamento(aspasFechamento);
+      contadorAspasAberto = corrigirAspasAbertura(aspasAbertura,doc);
+      contadorAspasFechado = corrigirAspasFechamento(aspasFechamento,doc);
 
       contadorAspas = contadorAspasAberto + contadorAspasFechado;
     }
@@ -764,7 +783,9 @@
       contadorVirgulaEspaco = contagemV1 + contagemV2;
     }
 
-    if (ajustarBarraEspaco) contadorBarraEspaco = ajustarBarraIgual();
+    if (ajustarBarraEspaco) {
+    contadorBarraEspaco = ajustarBarrEspaco(app.activeDocument, ignorarTabelasBarra);
+    }
 
     if (ajustarIgualEspaco) contadorIgualEspaco = ajustarEspacoIgual();
 
@@ -798,71 +819,19 @@
     }
 
     var mensagem = "\n                    Correções concluídas!\n\n";
-    if (aplicarAspas)
-      mensagem +=
-        "✅ " +
-        contadorAspas +
-        " - Aspas alteradas (" +
-        contadorAspasAberto +
-        " de abertura e " +
-        contadorAspasFechado +
-        " de fechamento).\n";
+    if (aplicarAspas) mensagem += "✅ " + contadorAspas + " - Aspas alteradas (" + contadorAspasAberto + " de abertura e " + contadorAspasFechado + " de fechamento).\n";
+    if (trocarPontoPorVirgula) mensagem += "✅ " + contadorPontoVirgula + " - Pontos trocados por vírgula.\n";
+    if (trocarVirgulaPorPonto) mensagem += "✅ " + contadorVirgulaPonto + " - Vírgulas trocadas por ponto.\n";
+    if (ajustarPontoFinalEspaco) mensagem += "✅ " + contadorPontoFinalEspaco + " - Ajustes em '   .   ' executados com sucesso.\n";
+    if (ajustarVirgulaEspaco) mensagem += "✅ " + contadorVirgulaEspaco + " - Ajustes em '   ,   ' executados com sucesso.\n";
+    if (ajustarIgualEspaco) mensagem += "✅ " + contadorIgualEspaco + " - Ajustes em '  =  ' executados com sucesso.\n";
+    if (ajustarEspacamentoDoisPontos) mensagem += "✅ " + contadorEspacamentoDoisPontos + " - Ajustes em '   :   ' executados com sucesso.\n";
+    if (ajustarEspacamentoPontoVirgula) mensagem += "✅ " + contadorEspacoDepoisPontoVirgula + " - Ajustes em '   ;   ' executados com sucesso. \n";
+    if (ajustarEspacoAntesPercent) mensagem += "✅ " + contadorEspacoAntesPercent + " - Ajustes em '  %  ' executados com sucesso.\n";
+    if (ajustarBarraEspaco) mensagem += "✅ " + contadorBarraEspaco + " - Ajustes em '   /   ' executados com sucesso.\n";
 
-    if (trocarPontoPorVirgula)
-      mensagem +=
-        "✅ " + contadorPontoVirgula + " - Pontos trocados por vírgula.\n";
-    if (trocarVirgulaPorPonto)
-      mensagem +=
-        "✅ " + contadorVirgulaPonto + " - Vírgulas trocadas por ponto.\n";
-
-    if (ajustarPontoFinalEspaco)
-      mensagem +=
-        "✅ " +
-        contadorPontoFinalEspaco +
-        " - Ajustes em '   .   ' executados com sucesso.\n";
-    if (ajustarVirgulaEspaco)
-      mensagem +=
-        "✅ " +
-        contadorVirgulaEspaco +
-        " - Ajustes em '   ,   ' executados com sucesso.\n";
-    if (ajustarIgualEspaco)
-      mensagem +=
-        "✅ " +
-        contadorIgualEspaco +
-        " - Ajustes em '  =  ' executados com sucesso.\n";
-    if (ajustarEspacamentoDoisPontos)
-      mensagem +=
-        "✅ " +
-        contadorEspacamentoDoisPontos +
-        " - Ajustes em '   :   ' executados com sucesso.\n";
-    if (ajustarEspacamentoPontoVirgula)
-      mensagem +=
-        "✅ " +
-        contadorEspacoDepoisPontoVirgula +
-        " - Ajustes em '   ;   ' executados com sucesso. \n";
-    if (ajustarEspacoAntesPercent)
-      mensagem +=
-        "✅ " +
-        contadorEspacoAntesPercent +
-        " - Ajustes em '  %  ' executados com sucesso.\n";
-    if (ajustarBarraEspaco)
-      mensagem +=
-        "✅ " +
-        contadorBarraEspaco +
-        " - Ajustes em '   /   ' executados com sucesso.\n";
-
-    if (contadorCapitalizacao > 0) {
-      mensagem +=
-        "✅ " +
-        contadorCapitalizacao +
-        " - Alterações de Caixa concluídas: \n       -  Idioma: " +
-        idiomaSelecionado +
-        ", \n       -  Modelo: " +
-        capitalizacaoSelecionada +
-        ", \n       -  Estilos: " +
-        estilosSelecionados.join(", ") +
-        "\n";
-    }
+    if (contadorCapitalizacao > 0) { mensagem += "✅ " + contadorCapitalizacao + " - Alterações de Caixa concluídas: \n       -  Idioma: " +
+      idiomaSelecionado + ", \n       -  Modelo: " + capitalizacaoSelecionada + ", \n       -  Estilos: " + estilosSelecionados.join(", ") + "\n"; }
 
     if (
       !aplicarAspas &&
@@ -910,10 +879,67 @@
 
   //FUNCOES DE CORRECAO DE ASPAS
 
-  //    Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
-  // pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
+/*
 
+          Funções para remover as aspas retas do arquivo.
+  Basicamente, elas removem os espaços antes e depois das aspas retas,
+  e depois substituem as aspas retas por aspas curvas, depois o codigo faz a substituição
+  das aspas curvas por aspas de acordo com o idioma selecionado.
+  
+*/
+  function removerEspacoDepoisAspaRetas() {
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+
+    app.findGrepPreferences.findWhat =
+      "(?<![A-Za-zÀ-ÖØ-öø-ÿ0-9])(\")[\x20\xA0\u202F]+(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])";
+    app.changeGrepPreferences.changeTo = "$1";
+
+    doc.changeGrep();
+
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+}
+
+function removerEspacoAntesAspaRetas() {
+    do {
+        app.findGrepPreferences = app.changeGrepPreferences = null;
+
+        app.findGrepPreferences.findWhat =
+          "([A-Za-zÀ-ÖØ-öø-ÿ0-9])\\s+(\")(?=(\\s+[\"A-Za-zÀ-ÖØ-öø-ÿ])|\\s*$|\\s*[.,;:!?)]|$)";
+        app.changeGrepPreferences.changeTo = "$1$2";
+
+        var result = doc.changeGrep();
+        var changes = result ? result.length : 0;
+
+        app.findGrepPreferences = app.changeGrepPreferences = null;
+    } while (changes > 0);
+}
+
+function substituirAspasRetas() {
+    var doc = app.activeDocument;
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+
+    // Busca somente aspas retas: "conteúdo"
+    app.findGrepPreferences.findWhat = '\u0022([^\u0022]+?)\u0022'; 
+
+    var encontrados = doc.findGrep();
+
+    for (var i = 0; i < encontrados.length; i++) {
+        var conteudo = encontrados[i].contents;
+        var novoConteudo = '“' + conteudo.slice(1, -1) + '”';
+        encontrados[i].contents = novoConteudo;
+    }
+
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+}
+
+
+
+/*
+  Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
+  pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
+*/
   function removerEspacoDepoisAspaAbertura() {
+    alert("Atenção: Removendo espaços após aspas de abertura.");
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
     // Inclui espaços comuns (\x20), inseparáveis (\xA0) e estreitos inseparáveis (\x{202F})
@@ -929,6 +955,7 @@
   }
 
   function removerEspacoAntesAspaFechamento() {
+    alert("Atenção: Removendo espaços antes de aspas de fechamento.");
     var totalChanges = 0;
     var changes;
 
@@ -936,9 +963,10 @@
       app.findGrepPreferences = app.changeGrepPreferences = null;
 
       app.findGrepPreferences.findWhat =
-        "([A-Za-zÀ-ÖØ-öø-ÿ0-9])\\s+([" +
-        AspasFecha +
-        "])(?=(\\s+[A-Za-zÀ-ÖØ-öø-ÿ])|\\s*$|\\s*[.,;:!?)]|$)";
+      "([A-Za-zÀ-ÖØ-öø-ÿ0-9])\\s+([" +
+      AspasFecha +
+      "])(?=(\\s+[" + AspasAbre + "A-Za-zÀ-ÖØ-öø-ÿ])|\\s*$|\\s*[.,;:!?)]|$)";
+
       app.changeGrepPreferences.changeTo = "$1$2";
 
       var result = doc.changeGrep();
@@ -952,6 +980,7 @@
   }
 
   function corrigirAspasAbertura(aspasAbertura) {
+    alert("Atenção: Corrigindo aspas de abertura.");
     app.findGrepPreferences = app.changeGrepPreferences = null;
     var totalAlteracoes = 0;
 
@@ -973,6 +1002,7 @@
   }
 
   function corrigirAspasFechamento(aspasFechamento) {
+    alert("Atenção: Corrigindo aspas de fechamento.");
     app.findGrepPreferences = app.changeGrepPreferences = null;
     var totalAlteracoes = 0;
 
@@ -1277,11 +1307,26 @@
     var totalAlteracoes = 0;
 
     if (ajustarEspacamentoDoisPontos_Antes) {
-      // Corrige todos os casos para " : "
-      app.findGrepPreferences.findWhat = "\\s*:\\s*";
-      app.changeGrepPreferences.changeTo = " : ";
-      var changed = doc.changeGrep();
-      totalAlteracoes += changed ? changed.length : 0;
+    // Espaço antes dos dois-pontos
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+    app.findGrepPreferences.findWhat = "(?<!\\s):";
+    var encontrados1 = doc.findGrep();
+    if (encontrados1.length > 0) {
+    app.changeGrepPreferences.changeTo = " :";
+    var changed1 = doc.changeGrep();
+    totalAlteracoes += changed1 ? changed1.length : 0;
+  }
+
+  // Espaço depois dos dois-pontos
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+    app.findGrepPreferences.findWhat = ":(?!\\s|\\r|\\n)";
+    var encontrados2 = doc.findGrep();
+    if (encontrados2.length > 0) {
+    app.changeGrepPreferences.changeTo = ": ";
+    var changed2 = doc.changeGrep();
+    totalAlteracoes += changed2 ? changed2.length : 0;
+  }
+
     } else {
       // Corrige apenas o espaço depois dos dois pontos
       app.findGrepPreferences.findWhat = ":(?! )(?=[A-Za-zÀ-ÖØ-öø-ÿ0-9])";
@@ -1314,48 +1359,68 @@
     return count;
   }
 
-  function ajustarBarraIgual() {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
 
-    var totalAlteracoes = 0;
 
-    // Se a opção de ignorar tabelas estiver marcada
-    if (ignorarTabelasBarra) {
-      var stories = doc.stories;
-      for (var i = 0; i < stories.length; i++) {
-        var story = stories[i];
+ function ajustarBarrEspaco(doc, ignorarTabelasBarra) {
+  var totalAlteracoes = 0;
 
-        if (story.tables.length > 0) continue;
+  if (ignorarTabelasBarra) {
+    var stories = doc.stories;
+    for (var i = 0; i < stories.length; i++) {
+      var story = stories[i];
 
-        app.findGrepPreferences.findWhat = "([^\\s])/";
-        app.changeGrepPreferences.changeTo = "$1 /";
-        var changed1 = story.changeGrep();
+      if (story.tables.length === 0) {
+        totalAlteracoes += aplicarSeNecessario(story, "([^\\s])/([^\\s])", "$1 / $2", false);
+      } else {
+        for (var j = 0; j < story.paragraphs.length; j++) {
+          var p = story.paragraphs[j];
 
-        app.findGrepPreferences.findWhat = "/(\\S)";
-        app.changeGrepPreferences.changeTo = "/ $1";
-        var changed2 = story.changeGrep();
-
-        totalAlteracoes +=
-          (changed1 ? changed1.length : 0) + (changed2 ? changed2.length : 0);
+          if (!estaDentroDeTabela(p)) {
+            totalAlteracoes += aplicarSeNecessario(p, "([^\\s])/([^\\s])", "$1 / $2", false);
+          }
+        }
       }
-    } else {
-      // Aplica no documento inteiro
-      app.findGrepPreferences.findWhat = "([^\\s])/";
-      app.changeGrepPreferences.changeTo = "$1 /";
-      var changed1 = doc.changeGrep();
-
-      app.findGrepPreferences.findWhat = "/(\\S)";
-      app.changeGrepPreferences.changeTo = "/ $1";
-      var changed2 = doc.changeGrep();
-
-      totalAlteracoes =
-        (changed1 ? changed1.length : 0) + (changed2 ? changed2.length : 0);
     }
-
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-
-    return totalAlteracoes;
+  } else {
+    totalAlteracoes += aplicarSeNecessario(doc, "([^\\s])/([^\\s])", "$1 / $2", true);
   }
+
+  return totalAlteracoes;
+}
+
+function estaDentroDeTabela(objeto) {
+  try {
+    return objeto.parent.constructor.name === "Cell";
+  } catch (e) {
+    return false;
+  }
+}
+
+function aplicarSeNecessario(alvo, procurar, substituir, permitirDentroTabela) {
+
+  app.findGrepPreferences = app.changeGrepPreferences = null;
+  app.findGrepPreferences.findWhat = procurar;
+  app.changeGrepPreferences.changeTo = substituir;
+
+  var encontrados = alvo.findGrep();
+  var total = 0;
+
+  for (var i = 0; i < encontrados.length; i++) {
+    var item = encontrados[i];
+
+    var dentroTabela = estaDentroDeTabela(item);
+    if (!permitirDentroTabela && dentroTabela) continue;
+
+    item.changeGrep();
+    total++;
+  }
+
+  return total;
+}
+
+
+
+
 
   function ajustarEspacoIgual(doc) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -1395,6 +1460,7 @@
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
   }
+
   function ajustarEspacoAntesPercentual(doc) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     var doc = app.activeDocument;
