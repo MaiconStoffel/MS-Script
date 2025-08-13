@@ -877,14 +877,15 @@
     win.show();
   }
 
-  //FUNCOES DE CORRECAO DE ASPAS
-
-/*
+/* FUNCOES DE CORRECAO DE ASPAS
 
           Funções para remover as aspas retas do arquivo.
   Basicamente, elas removem os espaços antes e depois das aspas retas,
   e depois substituem as aspas retas por aspas curvas, depois o codigo faz a substituição
   das aspas curvas por aspas de acordo com o idioma selecionado.
+
+  Isso tudo porque o InDesign detecta qualquer aspa como uma aspa reta, se eu colocar pra ele buscar por aspas retas,
+  ele vai substituir todas as aspas, polonesas,fracesas, alemãs, padrões, basicamente todas as aspas do arquivo.
   
 */
   function removerEspacoDepoisAspaRetas() {
@@ -897,9 +898,9 @@
     doc.changeGrep();
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
-}
+  }
 
-function removerEspacoAntesAspaRetas() {
+  function removerEspacoAntesAspaRetas() {
     do {
         app.findGrepPreferences = app.changeGrepPreferences = null;
 
@@ -912,9 +913,9 @@ function removerEspacoAntesAspaRetas() {
 
         app.findGrepPreferences = app.changeGrepPreferences = null;
     } while (changes > 0);
-}
+  }
 
-function substituirAspasRetas() {
+  function substituirAspasRetas() {
     var doc = app.activeDocument;
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
@@ -930,9 +931,7 @@ function substituirAspasRetas() {
     }
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
-}
-
-
+  }
 
 /*
   Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
@@ -979,49 +978,48 @@ function substituirAspasRetas() {
     return totalChanges;
   }
 
-  function corrigirAspasAbertura(aspasAbertura) {
-    alert("Atenção: Corrigindo aspas de abertura.");
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    var totalAlteracoes = 0;
+function corrigirAspasAbertura(aspasAbertura) {
+  alert("Atenção: Corrigindo aspas de abertura.");
+  app.findGrepPreferences = app.changeGrepPreferences = null;
 
-    var listaAspas = AspasAbre.replace(aspasAbertura, "");
-    var aspasAberturaEscapada = aspasAbertura.replace(
-      /([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g,
-      "\\$1"
-    );
+  var listaAspas = AspasAbre.replace(aspasAbertura, "");
 
-    app.findGrepPreferences.findWhat =
-      "(?<=[\\s\\(\\[\\{—])[" + listaAspas + "]";
-    app.changeGrepPreferences.changeTo = aspasAberturaEscapada;
+  var changes;
+  do {
+    app.findGrepPreferences.findWhat = "[" + listaAspas + "]";
+    app.changeGrepPreferences.changeTo = aspasAbertura;
 
     var changed = doc.changeGrep();
-    totalAlteracoes = changed ? changed.length : 0;
+    var totalAlteracoes = changed ? changed.length : 0;
+  } while (changes > 0);
 
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    return totalAlteracoes;
-  }
+  app.findGrepPreferences = app.changeGrepPreferences = null;
+  return totalAlteracoes;
+}
 
-  function corrigirAspasFechamento(aspasFechamento) {
-    alert("Atenção: Corrigindo aspas de fechamento.");
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    var totalAlteracoes = 0;
+function corrigirAspasFechamento(aspasFechamento) {
+  alert("Atenção: Corrigindo aspas de fechamento.");
+  app.findGrepPreferences = app.changeGrepPreferences = null;
 
-    var listaAspas = AspasFecha.replace(aspasFechamento, "");
-    var aspasFechamentoEscapada = aspasFechamento.replace(
-      /([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g,
-      "\\$1"
-    );
+  var listaAspas = AspasFecha.replace(aspasFechamento, "");
 
-    app.findGrepPreferences.findWhat =
-      "(?<![\\s\\(\\[\\{—])[" + listaAspas + "]";
-    app.changeGrepPreferences.changeTo = aspasFechamentoEscapada;
+  var aspasFechamentoEscapada = aspasFechamento.replace(
+    /([\\\^\$\.\|\?\*\+\(\)\[\]\{\}])/g,
+    "\\$1"
+  );
 
-    var changed = doc.changeGrep();
-    totalAlteracoes = changed ? changed.length : 0;
+  app.findGrepPreferences.findWhat =
+    "(?<=[^\\s\\(\\[\\{—])[" + listaAspas + "]";
 
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    return totalAlteracoes;
-  }
+  app.changeGrepPreferences.changeTo = aspasFechamentoEscapada;
+
+  var changed = doc.changeGrep();
+  var totalAlteracoes = changed ? changed.length : 0;
+
+  app.findGrepPreferences = app.changeGrepPreferences = null;
+  return totalAlteracoes;
+}
+
 
   /*--------------------------------------------------------------------------*/
 
@@ -1359,9 +1357,9 @@ function substituirAspasRetas() {
     return count;
   }
 
+  /*ajuste espaçamento barra*/
 
-
- function ajustarBarrEspaco(doc, ignorarTabelasBarra) {
+  function ajustarBarrEspaco(doc, ignorarTabelasBarra) {
   var totalAlteracoes = 0;
 
   if (ignorarTabelasBarra) {
@@ -1386,17 +1384,17 @@ function substituirAspasRetas() {
   }
 
   return totalAlteracoes;
-}
+  }
 
-function estaDentroDeTabela(objeto) {
+  function estaDentroDeTabela(objeto) {
   try {
     return objeto.parent.constructor.name === "Cell";
   } catch (e) {
     return false;
   }
-}
+  }
 
-function aplicarSeNecessario(alvo, procurar, substituir, permitirDentroTabela) {
+  function aplicarSeNecessario(alvo, procurar, substituir, permitirDentroTabela) {
 
   app.findGrepPreferences = app.changeGrepPreferences = null;
   app.findGrepPreferences.findWhat = procurar;
@@ -1416,11 +1414,9 @@ function aplicarSeNecessario(alvo, procurar, substituir, permitirDentroTabela) {
   }
 
   return total;
-}
+  }
 
-
-
-
+  ////////////////////////////
 
   function ajustarEspacoIgual(doc) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
