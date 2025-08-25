@@ -1,0 +1,9 @@
+V/F
+I/F
+F/V
+I/V
+OBR./MIN
+OBR/MIN
+V/I
+F/I
+I/S
