@@ -1,22 +1,31 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : MS-Script
-  * @brief          : Script for InDesign Automations
-  * @author 	      : @mschwertz / 2025
+  * ^file           : MS-Script
+  * ^brief          : Script for InDesign Automations
+  * ^author 	      : mschwertz / 2025
   ******************************************************************************
-  * @attention
-
+  *                       TODO - @mschwertz
+  * 
+  * *TODO - [X] - Arrumar funcoes de troca de decimal (as duas)
+  * *TODO - [X] - Colocar o espanhol, russo, italiano, turco e holandes como opcao de idioma na Capitalizacao nas excessoes
+  * *TODO - [X] - Arrumar a parte das siglas "de", "para" e tal da Capitalização, verificar pra colocar em um txt ?
+  * ^TODO - [] - Tirar o botao de contabilizar o tempo e fazer como padrao
+  *  TODO - [] - Verificar a funcao de Capitalização para pegar arquivos de Programação que nao possuem o estilo.
+  *  TODO - [] - Verificar se vale a pena colocar aquela tela de execucao quando clicar em executar.
+  *  TODO - [] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
+  *  TODO - [] - Passar funcao por funcao fazendo uma verificacao do codigo
   ******************************************************************************
   */
 /* USER CODE END Header */
-
-(function () {
+(function () {  
   ("highlight Force Decorate");
   if (app.documents.length === 0) {
-    alert("Abra um documento antes de rodar o script.");
+    alert("Abra um documento antes de rodar script.");
     return;
   }
+
+  var developerInfo = "Developed by: @mschwertz - Version 1.0";
 
   var doc = app.activeDocument;
 
@@ -31,6 +40,9 @@
   var aspasAbertura = "";
   var aspasFechamento = "";
   var aplicarAspas = false;
+
+  var ContabilizarTempo = false;
+  var contagensIniciais = {}; 
 
   var ignorarTabelasBarra = false;
   var ajustarEspacamentoDoisPontos_Antes = false;
@@ -66,6 +78,8 @@
   var contadorEspacoDepoisPontoVirgula = 0;
 
   //variaveis da troca do decimal
+
+
   var trocarPontoPorVirgula = false;
   var trocarVirgulaPorPonto = false;
   var paginasSelecionadasDecimal = ""; // var q conteem o que o usuario escreveu na troca decimal, porém mais filtrada e arrumada
@@ -103,6 +117,7 @@
       botao.preferredSize = tamanhoBotao;
       botao.helpTip = helpTip || "";
       botao.onClick = function () {
+        ContabilizarTempo = chkContabilizarTempo.value;
         janela.close();
         onClick();
       };
@@ -145,10 +160,18 @@
       "Ajustes gerais de espaçamento para pontuação e símbolos"
     );
 
+    var chkContabilizarTempo = janela.add(
+      "checkbox",
+      undefined,
+      "Contabilizar Tempo Salvo?"
+    ); 
+    chkContabilizarTempo.helpTip = "Se marcado, ao final do processo você conseguirá visualizar a estimativa do tempo salvo utilizando o script.";
+    chkContabilizarTempo.value = true;
+
     janela.add(
       "statictext",
       undefined,
-      "Developed by: @mshcwertz - Version 2.5"
+      developerInfo
     );
 
     janela.center();
@@ -156,6 +179,7 @@
   }
 
   function telaAspas() {
+
     var win = new Window("dialog", "Escolha de Aspas");
     win.orientation = "column";
     win.alignChildren = "left";
@@ -180,22 +204,28 @@
       undefined,
       "Polonês („ ”)"
     );
+    idiomaPolones.helpTip = "Irá alterar as aspas do documento para o formato Polonês: „ ”";
     var idiomaAlemao = idiomaGrupo.add(
       "radiobutton",
       undefined,
       "Alemão („ “)"
     );
+    idiomaAlemao.helpTip = "Irá alterar as aspas do documento para o formato Alemão: „ “";
     var idiomaFrances = idiomaGrupo.add(
       "radiobutton",
       undefined,
       "Francês (« »)"
     );
+    idiomaFrances.helpTip = "Irá alterar as aspas do documento para o formato Francês: « »";
+
     var idiomaRusso = idiomaGrupo.add("radiobutton", undefined, "Russo (« »)");
+    idiomaRusso.helpTip = "Irá alterar as aspas do documento para o formato Russo: « »";
     var idiomaPadrao = idiomaGrupo.add(
       "radiobutton",
       undefined,
       "Padrão (“ ”)"
     );
+    idiomaPadrao.helpTip = "Irá alterar as aspas do documento para o formato Padrão: “ ”";
 
     var idiomaOutro = idiomaGrupo.add(
       "radiobutton",
@@ -203,6 +233,10 @@
       "Não Efetuar Alteração"
     );
     idiomaOutro.value = true;
+    idiomaOutro.helpTip = "Não irá efetuar nenhuma alteração nas aspas do documento.";
+
+    var linha = win.add("panel");
+    linha.alignment = "fill";
 
     var botoes = win.add("group");
     botoes.alignment = "center";
@@ -282,11 +316,14 @@
       undefined,
       "Trocar ponto por vírgula decimal (3.14 → 3,14)"
     );
+    rbPontoVirgula.helpTip = "Se marcado, o script irá trocar todos os pontos decimais (3.14) por vírgulas (3,14).";
+
     var rbVirgulaPonto = grupoDecimal.add(
       "radiobutton",
       undefined,
       "Trocar vírgula por ponto decimal (3,14 → 3.14)"
     );
+    rbVirgulaPonto.helpTip = "Se marcado, o script irá trocar todas as vírgulas decimais (3,14) por pontos (3.14).";
 
     var rbNenhum = grupoDecimal.add(
       "radiobutton",
@@ -294,6 +331,7 @@
       "Não Efetuar Alteração"
     );
     rbNenhum.value = true;
+    rbNenhum.helpTip = "Se marcado, nenhuma alteração será feita nos decimais do documento.";
 
     var linha = grupoDecimal.add("panel");
     linha.alignment = "fill";
@@ -324,14 +362,15 @@
     var chkTodasPaginas = grupoDecimal.add(
       "checkbox",
       undefined,
-      "Aplicar a todas as páginas?"
+      "Aplicar em todas as páginas?"
     );
     chkTodasPaginas.value = true;
+    chkTodasPaginas.helpTip = "Se marcado, a troca decimal será aplicada em todas as páginas do documento.";
 
     txtPgnsCenter.add(
       "statictext",
       undefined,
-      "Páginas a afetar (ex: 1 - 3 , 5 , 8):"
+      "Páginas para a mudança (ex: 1 - 3 , 5 , 8):"
     );
     inputPaginas = win.add("edittext", undefined, "");
     inputPaginas.characters = 30;
@@ -341,6 +380,9 @@
     chkTodasPaginas.onClick = function () {
       inputPaginas.enabled = !chkTodasPaginas.value;
     };
+
+    var linha = win.add("panel");
+    linha.alignment = "fill";
 
     // Botões
     var botoes = win.add("group");
@@ -439,8 +481,9 @@
     var chkPontoFinalTabela = win.add(
       "checkbox",
       undefined,
-      "Verificar os Pontos Finais dentro Tabelas?"
+      "Verificar os Pontos Finais dentro de tabelas?"
     );
+    chkPontoFinalTabela.helpTip = "Se selecionado, o usuário irá passar por todos os pontos finais dentro de tabelas para decidir se quer exclui-los ou não.";
 
     chkPontoFinalTabela.onClick = function () {
       if (chkPontoFinalTabela.value) {
@@ -469,26 +512,30 @@
     var chkSelecionarTodos = win.add(
       "checkbox",
       undefined,
-      "Selecionar Todas as Padrozinações abaixo"
+      "Selecionar todas as padrozinações abaixo"
     );
+    chkSelecionarTodos.helpTip = "Se marcado, todas as padronizações abaixo serão aplicadas ao documento.";
 
     var chkPontoFinalEspaco = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento do Ponto → '.  '"
     );
+    chkPontoFinalEspaco.helpTip = "Padroniza o espaçamento após o ponto final, deixando um espaço após o ponto.";
 
     var chkVirgulaEspaco = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento da Vírgula → ',  '."
     );
+    chkVirgulaEspaco.helpTip = "Padroniza o espaçamento após a vírgula, deixando um espaço após a vírgula.";
 
     var chkIgualEspaco = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento do Igual → '  =  '"
     );
+    chkIgualEspaco.helpTip = "Padroniza o espaçamento antes e depois do sinal de igual, deixando um espaço antes e depois do sinal.";
 
     var grupo2P = win.add("group");
     grupo2P.orientation = "row";
@@ -499,35 +546,65 @@
       undefined,
       "Padronizar espaçamento do Dois-Pontos → ':  '"
     );
+    chkDoisPontosEspaco.helpTip = "Padroniza o espaçamento após o dois-pontos, deixando um espaço após o símbolo.";
 
     var chk2PEspacoAntes = grupo2P.add("checkbox", undefined, "Espaço Antes?");
     chk2PEspacoAntes.helpTip =
-      "Se marcado, o espaçamento será aplicado também antes do Dois-Pontos, como em '  :  '";
+      "Se marcado, o espaçamento será aplicado também antes do Dois-Pontos, como no exemplo: '  :  '";
 
     var chkEspacoDepoisPontoVirgula = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento do Ponto e Vírgula → ';  '"
     );
+    chkEspacoDepoisPontoVirgula.helpTip = "Padroniza o espaçamento após o ponto e vírgula, deixando um espaço após o símbolo.";
+
     var chkEspacoAntesPercent = win.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento da Porcentagem → '  %  '"
     );
+    chkEspacoAntesPercent.helpTip = "Padroniza o espaçamento antes do símbolo de porcentagem, deixando um espaço antes e depois do símbolo.";
 
     var grupoBarra = win.add("group");
     grupoBarra.orientation = "row";
-    grupoBarra.alignChildren = "left";
+    grupoBarra.alignment = "fill"; // ocupa a largura total
+    grupoBarra.alignChildren = ["left", "center"];
 
+    // Checkbox esquerda
     var chkBarraEspaco = grupoBarra.add(
       "checkbox",
       undefined,
       "Padronizar espaçamento da Barra → '  /  '"
     );
+    chkBarraEspaco.helpTip = "Padroniza o espaçamento antes e depois da barra, deixando um espaço antes e depois do símbolo.";
+
+    // Espaçador "elástico"
+    var espacoFlex = grupoBarra.add("statictext", undefined, "");
+    espacoFlex.alignment = "fill";
+
+    // Checkbox direita
     var chkTabelas = grupoBarra.add("checkbox", undefined, "Ignorar Tabelas?");
     chkTabelas.helpTip =
       "Se marcado, a padronização da barra '  /  ' será aplicada apenas fora de tabelas.";
 
+    var BancoDadosBarra = win.add("group");
+    BancoDadosBarra.orientation = "row";
+    BancoDadosBarra.alignment = "right";
+
+    var BancoDadosBarra = BancoDadosBarra.add(
+      "button",
+      undefined,
+      "Adicionar Siglas?"
+    );
+    BancoDadosBarra.preferredSize = [125, 20]; // ajusta largura e altura
+    BancoDadosBarra.helpTip = 
+      "Se marcado, o usuário poderá adicionar siglas, ao banco de dados, para não serem afetadas pela padronização da barra '  /  '.";
+
+    var linha = win.add("panel");
+    linha.alignment = "fill";
+    
+    
     var checkboxes = [
       // adicionar as checkboxes que devem ser selecionadas com o "Selecionar Todos"
       chkPontoFinalEspaco,
@@ -562,6 +639,10 @@
     var cancelar = botoes.add("button", undefined, "Cancelar", {
       name: "cancel",
     });
+
+    BancoDadosBarra.onClick = function () {
+      abrirJanelaAdicionarSiglaBarra();
+    }
 
     cancelar.onClick = function () {
       win.close();
@@ -605,7 +686,7 @@
     grupoTexto.add(
       "statictext",
       undefined,
-      "     Escolha o idioma e os estilos de parágrafo para aplicar a Alteração de Caixa::::::"
+      "     Escolha o idioma e os estilos de parágrafo para aplicar a alteração de caixa::::::"
     );
 
     var linha = win.add("panel");
@@ -615,29 +696,32 @@
     var chkNaoAplicar = win.add(
       "checkbox",
       undefined,
-      "Não aplicar alteração de caixa de títulos"
+      "Não aplicar alteração de caixa"
     );
+    chkNaoAplicar.helpTip = "Se marcado, nenhuma alteração de caixa será aplicada no documento.";
     chkNaoAplicar.alignment = "center";
     chkNaoAplicar.value = true;
 
     // Dropdown de idiomas
-    var idiomas = ["Português", "Inglês", "Polonês", "Francês"];
+    var idiomas = ["Português", "Inglês", "Espanhol", "Francês", "Alemão", "Italiano", "Polonês", "Russo", "Holandês", "Turco"];
     var grupoIdioma = win.add("group");
     grupoIdioma.add("statictext", undefined, "Idioma:");
     grupoIdioma.alignment = "center";
     var dropdownIdioma = grupoIdioma.add("dropdownlist", undefined, idiomas);
+    dropdownIdioma.helpTip = "Selecione o idioma para a alteração de caixa.";
     dropdownIdioma.selection = 0;
 
     // Dropdown de estilos
     var grupoCapitalizacao = win.add("group");
     grupoCapitalizacao.orientation = "row";
     grupoCapitalizacao.alignment = "center";
-    grupoCapitalizacao.add("statictext", undefined, "Alterar a Caixa para  →");
+    grupoCapitalizacao.add("statictext", undefined, "Alterar a caixa para  →");
     var dropdownCapitalizacao = grupoCapitalizacao.add(
       "dropdownlist",
       undefined,
       ["Maiúsculas", "Minúsculas", "Title Case"]
     );
+    dropdownCapitalizacao.helpTip = "Selecione o tipo de caixa para a alteração.";
     dropdownCapitalizacao.selection = 2; // default em Title Case
 
     // Estilos de parágrafo
@@ -690,6 +774,7 @@
     botoes.alignment = "center";
     var voltar = botoes.add("button", undefined, "Voltar");
     var adicionarSigla = botoes.add("button", undefined, "Adicionar Sigla");
+    adicionarSigla.helpTip = "Abre a janela para adicionar siglas ao banco de dados, para que não sejam afetadas pela alteração de caixa e ficarem em maiúsculo.";
     var proximo = botoes.add("button", undefined, "Próximo", { name: "ok" });
     var cancelar = botoes.add("button", undefined, "Cancelar", {
       name: "cancel",
@@ -714,11 +799,6 @@
         estilosSelecionados = [];
         win.close();
         telaFinal();
-        return;
-      }
-
-      if (!dropdownIdioma.selection) {
-        alert("Selecione um idioma para continuar.");
         return;
       }
 
@@ -826,6 +906,7 @@
     botoes.alignment = "center";
     var voltar = botoes.add("button", undefined, "Voltar");
     var executar = botoes.add("button", undefined, "Executar", { name: "ok" });
+    executar.helpTip = "Inicia o processo de correção do documento com base nas opções selecionadas.";
     var cancelar = botoes.add("button", undefined, "Cancelar", {
       name: "cancel",
     });
@@ -841,6 +922,30 @@
 
     executar.onClick = function () {
       win.close();
+
+      // Define quais operações o usuário selecionou
+      var ops = {
+        aplicarAspas: aplicarAspas,
+        trocarPontoPorVirgula: trocarPontoPorVirgula,
+        trocarVirgulaPorPonto: trocarVirgulaPorPonto,
+        ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
+        ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
+        ajustarBarraEspaco: ajustarBarraEspaco,
+        ajustarIgualEspaco: ajustarIgualEspaco,
+        ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
+      };
+
+      if (ContabilizarTempo) {
+        contagensIniciais = contarOcorrencias(app.activeDocument, ops);
+
+        // TESTE: exibe os caracteres encontrados
+        var testeResultado = "";
+        for (var key in contagensIniciais) {
+          testeResultado += key + ": " + contagensIniciais[key] + "\n";
+        }
+      }
+
+      // Executa a correção do documento
       app.doScript(
         executarCorrecao,
         ScriptLanguage.JAVASCRIPT,
@@ -855,6 +960,7 @@
   }
 
   function executarCorrecao() {
+
     if (aplicarAspas) {
       removerEspacoAntesAspaRetas(doc);
       removerEspacoDepoisAspaRetas(doc);
@@ -1026,20 +1132,17 @@
       "Aspas alteradas": contadorAspas,
       "Pontos trocados por vírgula": contadorPontoVirgula,
       "Vírgulas trocadas por ponto": contadorVirgulaPonto,
-      "Ajustes em ' . '": contadorPontoFinalEspaco,
-      "Ajustes em ' , '": contadorVirgulaEspaco,
       "Ajustes em ' = '": contadorIgualEspaco,
       "Ajustes em ' : '": contadorEspacamentoDoisPontos,
       "Ajustes em ' ; '": contadorEspacoDepoisPontoVirgula,
       "Ajustes em ' % '": contadorEspacoAntesPercent,
       "Ajustes em ' / '": contadorBarraEspaco,
-      "Alterações de Caixa": contadorCapitalizacao,
     };
 
     telaResultadoFinal(mensagem, contadoresAlteracoes);
   }
 
-  function telaResultadoFinal(resumoExecucao, contadoresAlteracoes) {
+  function telaResultadoFinal(resumoExecucao,contadoresAlteracoes) {
     var win = new Window("dialog", "Resultado Final! ☑");
     win.orientation = "column";
     win.alignChildren = "center";
@@ -1058,8 +1161,6 @@
     botoes.alignment = "center";
 
     var temposalvo = botoes.add("button", undefined, "Tempo Salvo");
-    temposalvo.helpTip = "Exibir o tempo salvo pela execução do script.";
-
     var ok = botoes.add("button", undefined, "OK");
     ok.helpTip = "Manter alterações e fechar o script.";
 
@@ -1076,201 +1177,209 @@
     };
 
     temposalvo.onClick = function () {
-      var ops = {
-        aplicarAspas: aplicarAspas,
-        trocarPontoPorVirgula: trocarPontoPorVirgula,
-        trocarVirgulaPorPonto: trocarVirgulaPorPonto,
-        ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
-        ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
-        ajustarBarraEspaco: ajustarBarraEspaco,
-        ajustarIgualEspaco: ajustarIgualEspaco,
-        ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
-      };
-
-      calcularTempoSalvo(contadoresAlteracoes, ops); // abre a nova
-      win.close(); // só fecha a original depois que a nova for exibida
+      if (!ContabilizarTempo) {
+        alert(
+          "Para ver o tempo salvo, volte à tela inicial e selecione a opção 'Contabilizar Tempo Salvo'."
+        );
+        return;
+      }
+      calcularTempoSalvo(
+        contadoresAlteracoes,
+        contagensIniciais,
+        {
+          aplicarAspas: aplicarAspas,
+          trocarPontoPorVirgula: trocarPontoPorVirgula,
+          trocarVirgulaPorPonto: trocarVirgulaPorPonto,
+          ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
+          ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
+          ajustarBarraEspaco: ajustarBarraEspaco,
+          ajustarIgualEspaco: ajustarIgualEspaco,
+          ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
+        }
+      );
     };
 
     win.center();
     win.show();
   }
 
-  function calcularTempoSalvo(contadoresAlteracoes, ops) {
-    // --- Configuração de tarefas e GREPs relevantes por operação ---
+  
+  //*----------------- FUNCAO DE CALCULO DO TEMPO SALVO -----------------
+  
+
+  var op2Greps = {
+    trocarPontoPorVirgula: ["\\."],
+    trocarVirgulaPorPonto: ["\\,"],
+    ajustarEspacamentoDoisPontos: ["\\:"],
+    ajustarEspacamentoPontoVirgula: ["\\;"],
+    ajustarBarraEspaco: ["\\/"],
+    ajustarIgualEspaco: ["\\="],
+    ajustarEspacoAntesPercent: ["\\%"],
+    aplicarAspas: ['"'],
+  };
+
+  var op2LabelContagem = {
+    trocarPontoPorVirgula: "Quantidade de pontos",
+    trocarVirgulaPorPonto: "Quantidade de vírgulas",
+    ajustarEspacamentoDoisPontos: "Quantidade de ':'",
+    ajustarEspacamentoPontoVirgula: "Quantidade de ';'",
+    ajustarBarraEspaco: "Quantidade de '/'",
+    ajustarIgualEspaco: "Quantidade de '='",
+    ajustarEspacoAntesPercent: "Quantidade de '%'",
+    aplicarAspas: "Quantidade de aspas",
+  };
+
+  var op2LabelAlteracao = {
+    trocarPontoPorVirgula: "Pontos trocados por vírgula",
+    trocarVirgulaPorPonto: "Vírgulas trocadas por ponto",
+    ajustarEspacamentoDoisPontos: "Ajustes em ' : '",
+    ajustarEspacamentoPontoVirgula: "Ajustes em ' ; '",
+    ajustarBarraEspaco: "Ajustes em ' / '",
+    ajustarIgualEspaco: "Ajustes em ' = '",
+    ajustarEspacoAntesPercent: "Ajustes em ' % '",
+    aplicarAspas: "Aspas alteradas",
+  };
+
+  function contarOcorrencias(doc, ops) {
+  var resultado = {};
+  if (!doc) doc = app.activeDocument; // fallback
+
+  try {
+    // zera prefs antes de começar
+    app.findGrepPreferences = NothingEnum.nothing;
+    app.changeGrepPreferences = NothingEnum.nothing;
+
+    for (var op in op2Greps) {
+      if (!op2Greps.hasOwnProperty(op)) continue;
+
+      // se 'ops' foi passado, conta só as operações ativas
+      if (ops && !ops[op]) continue;
+
+      var total = 0;
+
+      for (var i = 0; i < op2Greps[op].length; i++) {
+        app.findGrepPreferences.findWhat = op2Greps[op][i];
+        var encontrados = doc.findGrep();
+        total += encontrados.length;
+      }
+
+      var label = op2LabelContagem[op] || op;
+      resultado[label] = total;
+
+      // limpa o find pra próxima iteração
+      app.findGrepPreferences = NothingEnum.nothing;
+    }
+  } catch (e) {
+    alert("Erro ao contar ocorrências: " + e);
+  } finally {
+    // SEMPRE limpar no final
+    app.findGrepPreferences = NothingEnum.nothing;
+    app.changeGrepPreferences = NothingEnum.nothing;
+  }
+
+  return resultado;
+  }
+
+  function alertaTemporario(msg, tempoMs) {
+  var win = new Window("palette", "Aviso");  
+  win.add("statictext", undefined, msg);  
+  win.show();  
+
+  $.sleep(tempoMs || 1500); // espera (1.5s padrão)
+  win.close();
+  }
+
+  function calcularTempoSalvo(contadoresAlteracoes, contagensIniciais, ops) {
+    alertaTemporario("Calculando o Tempo Salvo...", 1000);
     var tarefas = [
-      {
-        op: "trocarPontoPorVirgula",
-        label: "Pontos trocados por vírgula",
-        greps: ["\\.", "\\,"],
-      },
-      {
-        op: "trocarVirgulaPorPonto",
-        label: "Vírgulas trocadas por ponto",
-        greps: ["\\,", "\\."],
-      },
-      {
-        op: "ajustarEspacamentoDoisPontos",
-        label: "Ajustes em ' : '",
-        greps: ["\\:"],
-      },
-      {
-        op: "ajustarEspacamentoPontoVirgula",
-        label: "Ajustes em ' ; '",
-        greps: ["\\;"],
-      },
-      { op: "ajustarBarraEspaco", label: "Ajustes em ' / '", greps: ["\\/"] },
-      { op: "ajustarIgualEspaco", label: "Ajustes em ' = '", greps: ["\\="] },
-      {
-        op: "ajustarEspacoAntesPercent",
-        label: "Ajustes em ' % '",
-        greps: ["\\%"],
-      },
-      // Aspas é opcional; aqui considero aspas retas (")
-      { op: "aplicarAspas", label: "Aspas alteradas", greps: ['"'] },
+      { op: "trocarPontoPorVirgula" },
+      { op: "trocarVirgulaPorPonto" },
+      { op: "ajustarEspacamentoDoisPontos" },
+      { op: "ajustarEspacamentoPontoVirgula" },
+      { op: "ajustarBarraEspaco" },
+      { op: "ajustarIgualEspaco" },
+      { op: "ajustarEspacoAntesPercent" },
+      { op: "aplicarAspas" },
     ];
 
-    // Nome "bonito" para cada grep (pra listar na seção de totais)
-    var grep2Nome = {
-      "\\.": "Ponto(s) final",
-      "\\,": "Vírgula(s)",
-      "\\:": "Dois-pontos",
-      "\\;": "Ponto e vírgula",
-      "\\/": "Barra(s)",
-      "\\=": "Igual",
-      "\\%": "Porcentagem",
-      '"': 'Aspas (")',
-    };
-
-    // Considera só operações ligadas
     var tarefasAtivas = [];
     for (var t = 0; t < tarefas.length; t++) {
-      var tf = tarefas[t];
-      if (ops && ops[tf.op]) tarefasAtivas.push(tf);
+      if (ops && ops[tarefas[t].op]) tarefasAtivas.push(tarefas[t]);
     }
 
-    // Se nada estiver ativo, só mostra mensagem simples
-    if (!tarefasAtivas.length) {
-      var w0 = new Window("dialog", "Resultado da Correção ⏱");
-      w0.orientation = "column";
-      w0.alignChildren = "center";
-      w0.add("statictext", undefined, "Nenhuma operação foi selecionada.");
-      var fechar0 = w0.add("button", undefined, "Fechar");
-      fechar0.onClick = function () {
-        w0.close();
-      };
-      w0.show();
-      return;
-    }
-
-    // ---------- Seção: totais globais apenas do que é relevante ----------
-    var resultado =
-      "---- Quantidade total (apenas do que foi selecionado) ----\n\n";
-
-    // Deduplica greps globais (ex.: se as duas tarefas de decimal estiverem ativas)
-    var grepsGlobais = {};
-    for (var i = 0; i < tarefasAtivas.length; i++) {
-      var g = tarefasAtivas[i].greps;
-      for (var j = 0; j < g.length; j++) grepsGlobais[g[j]] = true;
-    }
-
-    var totalOcorrenciasGlobais = 0;
-    for (var grepStr in grepsGlobais) {
-      app.findGrepPreferences = NothingEnum.nothing;
-      app.findGrepPreferences.findWhat = grepStr;
-      var encontrados = app.activeDocument.findGrep();
-      var qtd = encontrados.length;
-      if (qtd > 0) {
-        var nome = grep2Nome[grepStr] || grepStr;
-        resultado += nome + ": " + qtd + "\n";
-        totalOcorrenciasGlobais += qtd;
-      }
-    }
-
-    resultado +=
-      "\n-------------- Alterações realizadas pelo script --------------\n\n";
-
-    // Lista apenas contadores > 0
-    if (contadoresAlteracoes) {
-      for (var key in contadoresAlteracoes) {
-        if (contadoresAlteracoes[key] > 0) {
-          resultado += "✅ " + contadoresAlteracoes[key] + " - " + key + "\n";
-        }
-      }
-    } else {
-      resultado += "Nenhuma alteração feita.\n";
-    }
-
-    // ---------- Tempo estimado: só tarefas ativas ----------
-    var tempoNaoAlterado = 3; // s p/ item inspecionado sem mudança
-    var tempoAlterado = 8; // s p/ item que precisou mudar
+    var tempoNaoAlterado = 3;
+    var tempoAlterado = 8;
     var tempoTotalSegundos = 0;
 
     for (var x = 0; x < tarefasAtivas.length; x++) {
       var tarefa = tarefasAtivas[x];
+      var labelContagem = op2LabelContagem[tarefa.op];
+      var labelAlteracao = op2LabelAlteracao[tarefa.op];
 
-      // total relevante da tarefa (somatório dos seus GREPs)
-      var totalTarefa = 0;
-      for (var y = 0; y < tarefa.greps.length; y++) {
-        app.findGrepPreferences = NothingEnum.nothing;
-        app.findGrepPreferences.findWhat = tarefa.greps[y];
-        totalTarefa += app.activeDocument.findGrep().length;
-      }
-
-      // quantas mudanças essa tarefa fez de fato
-      var alteradas = 0;
-      if (
-        contadoresAlteracoes &&
-        contadoresAlteracoes[tarefa.label] !== undefined
-      ) {
-        alteradas = Number(contadoresAlteracoes[tarefa.label]) || 0;
-      }
-
+      var totalTarefa = contagensIniciais[labelContagem] || 0;
+      var alteradas = contadoresAlteracoes[labelAlteracao] || 0;
       var naoAlteradas = Math.max(totalTarefa - alteradas, 0);
+
       tempoTotalSegundos +=
         naoAlteradas * tempoNaoAlterado + alteradas * tempoAlterado;
     }
 
-    // Converte tempo
     var tempoTotalMinutos = tempoTotalSegundos / 60;
     var tempoTotalHoras = tempoTotalMinutos / 60;
 
-    resultado +=
-      "\n-------------------- Tempo total estimado --------------------\n\n";
-    resultado += "- " + tempoTotalSegundos.toFixed(0) + " segundos\n";
-    resultado += "- " + tempoTotalMinutos.toFixed(2) + " minutos\n";
-    resultado += "- " + tempoTotalHoras.toFixed(2) + " horas\n";
-
-    // ---------- Janela ----------
-    var winTempoSalvo = new Window("dialog", "Resultado da Correção ⏱");
+    // --- CRIA A JANELA DE EXIBIÇÃO ---
+    var winTempoSalvo = new Window("dialog", "Resultado Tempo Salvo ⏱");
     winTempoSalvo.orientation = "column";
     winTempoSalvo.alignChildren = "center";
 
-    winTempoSalvo.add(
-      "statictext",
-      undefined,
-      "Execução concluída com sucesso!"
-    );
+    var resultado =
+      "----- Quantidade de caracteres antes das alterações -----\n\n";
+
+    for (var key in contagensIniciais) {
+      resultado += key + ": " + contagensIniciais[key] + "\n";
+    }
+
+    resultado += "\n------------------------- Alterações feitas -------------------------\n\n";
+    
+    var algumaAlteracao = false;
+    for (var k in contadoresAlteracoes) {
+      if (contadoresAlteracoes[k] > 0) {
+        resultado += "✅ " + contadoresAlteracoes[k] + " - " + k + "\n";
+        algumaAlteracao = true;
+      }
+    }
+    if (!algumaAlteracao) {
+      resultado += "- Nenhuma alteração feita.\n";
+    }
+
+    resultado +=
+      "\n------------ Tempo total estimado economizado ------------\n\n" +
+      "- " +
+      tempoTotalSegundos.toFixed(0) +
+      " segundos\n" +
+      "- " +
+      tempoTotalMinutos.toFixed(2) +
+      " minutos\n" +
+      "- " +
+      tempoTotalHoras.toFixed(2) +
+      " horas\n";
 
     var caixaResultado = winTempoSalvo.add("edittext", undefined, resultado, {
       multiline: true,
       readonly: true,
     });
-    caixaResultado.preferredSize.width = 320;
-    caixaResultado.preferredSize.height = 300;
+    caixaResultado.size = [320, 300];
 
     var fechar = winTempoSalvo.add("button", undefined, "Fechar");
     fechar.onClick = function () {
       winTempoSalvo.close();
     };
 
-    // limpa prefs no final por segurança
-    app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
-
     winTempoSalvo.show();
   }
 
-  /* FUNCOES DE CORRECAO DE ASPAS
-
+  //*--------------------- FUNCOES DE CORRECAO DE ASPAS --------------------------------
+  /*
           Funções para remover as aspas retas do arquivo.
   Basicamente, elas removem os espaços antes e depois das aspas retas,
   e depois substituem as aspas retas por aspas curvas, depois o codigo faz a substituição
@@ -1278,8 +1387,8 @@
 
   Isso tudo porque o InDesign detecta qualquer aspa como uma aspa reta, se eu colocar pra ele buscar por aspas retas,
   ele vai substituir todas as aspas, polonesas,fracesas, alemãs, padrões, basicamente todas as aspas do arquivo.
-  
-*/
+  */
+
   function removerEspacoDepoisAspaRetas() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
@@ -1326,9 +1435,10 @@
   }
 
   /*
-  Foi necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
+  eh necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
   pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
-*/
+  */
+
   function removerEspacoDepoisAspaAbertura() {
     // alert("Atenção: Removendo espaços após aspas de abertura.");
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -1414,17 +1524,7 @@
     return totalAlteracoes;
   }
 
-  /*--------------------------------------------------------------------------*/
-
-  //------------------------------FUNÇÕES TROCA DE DECIMAIS----------------------------------------
-
-  function estaDentroDeTabelaDecimais(objeto) {
-    try {
-      return objeto.parent.constructor.name === "Cell";
-    } catch (e) {
-      return false;
-    }
-  }
+  //*---------------------------- FUNCOES TROCA DE DECIMAIS ----------------------------
 
   function estaEmReferenciaCruzada(trecho) {
     var doc = app.activeDocument;
@@ -1469,33 +1569,6 @@
     return dentro;
   }
 
-  function deveIgnorarPorExcecao(ponto, storyText, idx) {
-    // Se estiver dentro de célula, usamos o texto da célula ao invés da story toda
-    var textoBase = storyText;
-    if (estaDentroDeTabelaDecimais(ponto)) {
-      try {
-        textoBase = ponto.parent.contents; // texto da célula
-        idx = ponto.index; // índice relativo ao conteúdo da célula
-      } catch (e) {}
-    }
-
-    var dentroDeParenteses =
-      ignorarExclusaoParenteses &&
-      estaDentroDeExcecao(textoBase, idx, "(", ")");
-    var dentroDeColchetes =
-      ignorarExclusaoColchetes && estaDentroDeExcecao(textoBase, idx, "[", "]");
-
-    if (dentroDeParenteses || dentroDeColchetes) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Versão “pura” da verificação de exceções, recebendo o texto-base e o índice relativo a esse texto.
-   * (Assim você pode reaproveitar em qualquer escopo: story, frame ou célula.)
-   */
   function deveIgnorarPorExcecaoComBase(textoBase, idx) {
     var dentroDeParenteses =
       ignorarExclusaoParenteses &&
@@ -1515,32 +1588,51 @@
     var alterados = 0;
     var ignorados = 0;
 
-    // Monta a lista de alvos de TEXTO (não stories!)
-    // - Todas as páginas: usa stories -> texts[0]
-    // - Páginas selecionadas: usa textFrames da página -> texts[0]
     var alvosTexto = [];
 
     if (aplicarEmTodasAsPaginas) {
       var todasStories = doc.stories.everyItem().getElements();
       for (var s = 0; s < todasStories.length; s++) {
-        // Text do story inteiro
-        alvosTexto.push(todasStories[s].texts[0]);
+        var story = todasStories[s];
+        for (var p = 0; p < story.paragraphs.length; p++) {
+          alvosTexto.push(story.paragraphs[p]);
+        }
       }
     } else {
       for (var i = 0; i < paginasArray.length; i++) {
-        // Índice físico (1-based -> 0-based). Se preferir, troque por itemByName(String(paginasArray[i])).
         var pagina = doc.pages[paginasArray[i] - 1];
         if (!pagina) continue;
 
         var textFrames = pagina.textFrames;
         for (var j = 0; j < textFrames.length; j++) {
-          // Text do quadro daquela página
-          alvosTexto.push(textFrames[j].texts[0]);
+          var story = textFrames[j].parentStory;
+          for (var p = 0; p < story.paragraphs.length; p++) {
+            alvosTexto.push(story.paragraphs[p]);
+          }
         }
       }
     }
 
-    // Percorre SOMENTE os textos-alvo (restritos às páginas escolhidas)
+    // ---- CRIA A JANELA DE PROGRESSO ----
+    var w = new Window("palette", "Processando alterações...");
+  
+    // Texto superior
+    var aviso = w.add(
+      "statictext",
+      undefined,
+      " Deixe o InDesign aberto, isso pode levar um tempo."
+    );
+    aviso.alignment = "center";
+
+    // Grupo para texto de status centralizado
+    var groupTexto = w.add("group");
+    groupTexto.alignment = "fill";
+    groupTexto.alignChildren = "center";
+    var texto = groupTexto.add("statictext", undefined, "Iniciando...");
+    texto.characters = 25;
+    w.show();
+
+    // ---- LOOP DE PROCESSAMENTO ----
     for (var t = 0; t < alvosTexto.length; t++) {
       var textoAlvo = alvosTexto[t];
       var matches = textoAlvo.findGrep();
@@ -1548,12 +1640,9 @@
       for (var k = matches.length - 1; k >= 0; k--) {
         var ponto = matches[k];
 
-        // Índice relativo ao escopo atual (textoAlvo)
         var idx = ponto.insertionPoints[0].index;
-        var baseText = textoAlvo.contents;
+        var baseText = ponto.parentStory.contents;
 
-        // --- Ajuste para exceções dentro de TABELA ---
-        // Se o match estiver numa célula, usamos o conteúdo da célula e o índice local da célula
         try {
           if (
             ponto.parent &&
@@ -1561,17 +1650,15 @@
             ponto.parent.constructor.name === "Cell"
           ) {
             baseText = ponto.parent.contents;
-            idx = ponto.index; // índice relativo ao conteúdo da célula
+            idx = ponto.index;
           }
         } catch (e) {}
 
-        // Verificação centralizada de exceções () e []
         if (deveIgnorarPorExcecaoComBase(baseText, idx)) {
           ignorados++;
           continue;
         }
 
-        // Verificação de estilo (negrito/itálico) + referência cruzada
         var fontStyle = "";
         var isBold = false;
         var isItalic = false;
@@ -1592,12 +1679,21 @@
         } else {
           ignorados++;
         }
+
+        // Pequeno respiro a cada 500 matches
+        if (k % 500 === 0) {
+          $.sleep(10);
+        }
       }
+
+      texto.text = "             Processando bloco " + (t + 1) + " de " + alvosTexto.length;
+      w.update();
     }
 
+    w.close();
+
     app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
-    // Se quiser, mostre um resumo:
-    // alert("Alterados: " + alterados + "\nIgnorados: " + ignorados);
+
     return alterados;
   }
 
@@ -1611,32 +1707,51 @@
     var alterados = 0;
     var ignorados = 0;
 
-    // Monta a lista de alvos de TEXTO (não stories!)
-    // - Todas as páginas: usa stories -> texts[0]
-    // - Páginas selecionadas: usa textFrames da página -> texts[0]
     var alvosTexto = [];
 
     if (aplicarEmTodasAsPaginas) {
       var todasStories = doc.stories.everyItem().getElements();
       for (var s = 0; s < todasStories.length; s++) {
-        // Text do story inteiro
-        alvosTexto.push(todasStories[s].texts[0]);
+        var story = todasStories[s];
+        for (var p = 0; p < story.paragraphs.length; p++) {
+          alvosTexto.push(story.paragraphs[p]);
+        }
       }
     } else {
       for (var i = 0; i < paginasArray.length; i++) {
-        // Índice físico (1-based -> 0-based). Se preferir, troque por itemByName(String(paginasArray[i])).
         var pagina = doc.pages[paginasArray[i] - 1];
         if (!pagina) continue;
 
         var textFrames = pagina.textFrames;
         for (var j = 0; j < textFrames.length; j++) {
-          // Text do quadro daquela página
-          alvosTexto.push(textFrames[j].texts[0]);
+          var story = textFrames[j].parentStory;
+          for (var p = 0; p < story.paragraphs.length; p++) {
+            alvosTexto.push(story.paragraphs[p]);
+          }
         }
       }
     }
 
-    // Percorre SOMENTE os textos-alvo (restritos às páginas escolhidas)
+    // ---- CRIA A JANELA DE PROGRESSO ----
+    var w = new Window("palette", "Processando alterações...");
+  
+    // Texto superior
+    var aviso = w.add(
+      "statictext",
+      undefined,
+      " Deixe o InDesign aberto, isso pode levar um tempo."
+    );
+    aviso.alignment = "center";
+
+    // Grupo para texto de status centralizado
+    var groupTexto = w.add("group");
+    groupTexto.alignment = "fill";
+    groupTexto.alignChildren = "center";
+    var texto = groupTexto.add("statictext", undefined, "Iniciando...");
+    texto.characters = 25;
+    w.show();
+
+    // Percorre SOMENTE os textos-alvo
     for (var t = 0; t < alvosTexto.length; t++) {
       var textoAlvo = alvosTexto[t];
       var matches = textoAlvo.findGrep();
@@ -1644,12 +1759,9 @@
       for (var k = matches.length - 1; k >= 0; k--) {
         var virgula = matches[k];
 
-        // Índice relativo ao escopo atual (textoAlvo)
         var idx = virgula.insertionPoints[0].index;
-        var baseText = textoAlvo.contents;
+        var baseText = virgula.parentStory.contents;
 
-        // --- Ajuste para exceções dentro de TABELA ---
-        // Se o match estiver numa célula, usamos o conteúdo da célula e o índice local da célula
         try {
           if (
             virgula.parent &&
@@ -1657,17 +1769,15 @@
             virgula.parent.constructor.name === "Cell"
           ) {
             baseText = virgula.parent.contents;
-            idx = virgula.index; // índice relativo ao conteúdo da célula
+            idx = virgula.index;
           }
         } catch (e) {}
 
-        // Verificação centralizada de exceções () e []
         if (deveIgnorarPorExcecaoComBase(baseText, idx)) {
           ignorados++;
           continue;
         }
 
-        // Verificação de estilo (negrito/itálico) + referência cruzada
         var fontStyle = "";
         var isBold = false;
         var isItalic = false;
@@ -1688,12 +1798,20 @@
         } else {
           ignorados++;
         }
+
+        // ---- RESPIRO a cada 500 itens ----
+        if (k % 500 === 0) {
+          $.sleep(10);
+        }
       }
+
+      texto.text = "             Processando bloco " + (t + 1) + " de " + alvosTexto.length;
+      w.update();
     }
 
+    w.close();
+
     app.findGrepPreferences = app.changeGrepPreferences = NothingEnum.nothing;
-    // Se quiser, mostre um resumo:
-    // alert("Alterados: " + alterados + "\nIgnorados: " + ignorados);
     return alterados;
   }
 
@@ -1781,7 +1899,7 @@
     return paginasValidas;
   }
 
-  //-----------------------------------------------------------------------------------------------
+  //*-------------------------------- GERAIS -------------------------------------------
 
   function removerEspacoAntesVirgula() {
     //remove qualquer espaço antes de uma virgula
@@ -1871,48 +1989,186 @@
     return count;
   }
 
-  /*ajuste espaçamento barra*/
+  function abrirJanelaAdicionarSiglaBarra() {
+    var caminho =
+      "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/SiglasBarra.txt";
+
+    function salvarSiglaBarra(sigla) {
+      var arquivo = File(caminho);
+      var siglas = [];
+
+      if (arquivo.exists) {
+        if (arquivo.open("r")) {
+          var conteudo = arquivo.read();
+          arquivo.close();
+          siglas = conteudo.split(/[\r\n]+/);
+        } else {
+          alert("Erro ao abrir o arquivo para leitura.");
+          return;
+        }
+      } else {
+        alert("Arquivo NÃO existe. Será criado.");
+      }
+
+      // Remove espaços e repete uppercase
+      sigla = sigla.replace(/\s+/g, "").toUpperCase();
+
+      // Verifica duplicata sem usar .indexOf
+      var jaExiste = false;
+      for (var i = 0; i < siglas.length; i++) {
+        if (siglas[i].toUpperCase() === sigla) {
+          jaExiste = true;
+          break;
+        }
+      }
+
+      if (jaExiste) {
+        alert("Essa sigla já existe nesse banco de dados! ");
+        return;
+      }
+
+      siglas.push(sigla);
+
+      if (arquivo.open("w")) {
+        arquivo.write(siglas.join("\n"));
+        arquivo.close();
+        alert("Sigla salva com sucesso.");
+      } else {
+        alert("Erro ao abrir o arquivo para escrita.");
+      }
+    }
+
+    // Cria a janela
+    var win = new Window("dialog", "Adicionar Sigla");
+    win.orientation = "column";
+    win.alignChildren = "center";
+
+    win.add("statictext", undefined, "    Digite a sigla que deseja adicionar:    .");
+    var input = win.add("edittext", undefined, "");
+    input.characters = 20;
+    input.active = true;
+
+    var botoes = win.add("group");
+    var salvar = botoes.add("button", undefined, "Salvar", { name: "ok" });
+    var cancelar = botoes.add("button", undefined, "Cancelar", {
+      name: "cancel",
+    });
+
+    salvar.onClick = function () {
+      var sigla = input.text;
+      salvarSiglaBarra(sigla);
+      win.close();
+    };
+
+    cancelar.onClick = function () {
+      win.close();
+    };
+
+    win.center();
+    win.show();
+  }
+
+  function carregarSiglasDoArquivoBarra() {
+    try {
+      var arquivo = File(
+        "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/SiglasBarra.txt"
+      );
+
+      if (!arquivo.exists) {
+        alert("Arquivo de siglas não encontrado.");
+        return [];
+      }
+
+      arquivo.open("r");
+      var conteudo = arquivo.read();
+      arquivo.close();
+
+      var linhasBrutas = conteudo.split(/[\r\n]+/);
+      var siglas = [];
+
+      for (var i = 0; i < linhasBrutas.length; i++) {
+        var linha = linhasBrutas[i];
+        if (linha && linha.replace(/\s+/g, "") !== "") {
+          siglas.push(linha.replace(/^\s+|\s+$/g, "")); // trim manual
+        }
+      }
+
+      return siglas;
+    } catch (e) {
+      alert("Erro ao carregar siglas:\n" + e.message);
+      return [];
+    }
+  }
+
+  function detectarSiglaPresenteBarra(palavra, siglas) {
+    for (var i = 0; i < siglas.length; i++) {
+      var sigla = siglas[i];
+      var siglaLower = sigla.toLowerCase();
+      var palavraLower = palavra.toLowerCase();
+
+      if (palavraLower === siglaLower) {
+        return sigla; // palavra inteira é a sigla
+      }
+
+      if (
+        palavraLower.indexOf(siglaLower) === 0 && // começa com a sigla
+        palavra.length > sigla.length // há mais coisa depois
+      ) {
+        var proximoChar = palavra.charAt(sigla.length);
+
+        // Só aplica se o próximo caractere não for uma letra (A-Z ou a-z)
+        if (!/[a-zA-Z]/.test(proximoChar)) {
+          return sigla;
+        }
+      }
+    }
+    return null;
+  }
 
   function ajustarBarrEspaco(doc, ignorarTabelasBarra) {
-    var totalAlteracoes = 0;
+  var totalAlteracoes = 0;
+  var siglas = carregarSiglasDoArquivoBarra(); // carrega banco
 
-    if (ignorarTabelasBarra) {
-      var stories = doc.stories;
-      for (var i = 0; i < stories.length; i++) {
-        var story = stories[i];
+  if (ignorarTabelasBarra) {
+    var stories = doc.stories;
+    for (var i = 0; i < stories.length; i++) {
+      var story = stories[i];
 
-        if (story.tables.length === 0) {
-          totalAlteracoes += aplicarSeNecessario(
-            story,
-            "([^\\s])/([^\\s])",
-            "$1 / $2",
-            false
-          );
-        } else {
-          for (var j = 0; j < story.paragraphs.length; j++) {
-            var p = story.paragraphs[j];
+      if (story.tables.length === 0) {
+        totalAlteracoes += aplicarSeNecessario(
+          story,
+          "([^\\s])/([^\\s])",
+          "$1 / $2",
+          false,
+          siglas
+        );
+      } else {
+        for (var j = 0; j < story.paragraphs.length; j++) {
+          var p = story.paragraphs[j];
 
-            if (!estaDentroDeTabela(p)) {
-              totalAlteracoes += aplicarSeNecessario(
-                p,
-                "([^\\s])/([^\\s])",
-                "$1 / $2",
-                false
-              );
-            }
+          if (!estaDentroDeTabela(p)) {
+            totalAlteracoes += aplicarSeNecessario(
+              p,
+              "([^\\s])/([^\\s])",
+              "$1 / $2",
+              false,
+              siglas
+            );
           }
         }
       }
-    } else {
-      totalAlteracoes += aplicarSeNecessario(
-        doc,
-        "([^\\s])/([^\\s])",
-        "$1 / $2",
-        true
-      );
     }
+  } else {
+    totalAlteracoes += aplicarSeNecessario(
+      doc,
+      "([^\\s])/([^\\s])",
+      "$1 / $2",
+      true,
+      siglas
+    );
+  }
 
-    return totalAlteracoes;
+  return totalAlteracoes;
   }
 
   function estaDentroDeTabela(objeto) {
@@ -1923,33 +2179,35 @@
     }
   }
 
-  function aplicarSeNecessario(
-    alvo,
-    procurar,
-    substituir,
-    permitirDentroTabela
-  ) {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    app.findGrepPreferences.findWhat = procurar;
-    app.changeGrepPreferences.changeTo = substituir;
+  function aplicarSeNecessario(alvo, procurar, substituir, permitirDentroTabela, siglas) {
+  app.findGrepPreferences = app.changeGrepPreferences = null;
+  app.findGrepPreferences.findWhat = procurar;
+  app.changeGrepPreferences.changeTo = substituir;
 
-    var encontrados = alvo.findGrep();
-    var total = 0;
+  var encontrados = alvo.findGrep();
+  var total = 0;
 
-    for (var i = 0; i < encontrados.length; i++) {
-      var item = encontrados[i];
+  for (var i = 0; i < encontrados.length; i++) {
+    var item = encontrados[i];
 
-      var dentroTabela = estaDentroDeTabela(item);
-      if (!permitirDentroTabela && dentroTabela) continue;
+    var dentroTabela = estaDentroDeTabela(item);
+    if (!permitirDentroTabela && dentroTabela) continue;
 
-      item.changeGrep();
-      total++;
+    // 🔹 Aqui: pegar a palavra completa em volta da barra
+    var palavra = item.contents;
+    var siglaEncontrada = detectarSiglaPresenteBarra(palavra, siglas);
+
+    if (siglaEncontrada) {
+      // Ignora substituição se for sigla
+      continue;
     }
 
-    return total;
+    item.changeGrep();
+    total++;
   }
 
-  ////////////////////////////
+  return total;
+  }
 
   function ajustarEspacoIgual(doc) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -1967,7 +2225,7 @@
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
-    return (changed1 ? changed1.length : 0) + (changed2 ? changed2.length : 0);
+    return (changed1 ? changed1.length : 0);
   }
 
   function removerEspacoAntesPontoFinal() {
@@ -2128,12 +2386,10 @@
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
 
-    return (changed1 ? changed1.length : 0) + (changed2 ? changed2.length : 0);
+    return (changed1 ? changed1.length : 0);
   }
 
-  /*
-    CAPITALIZAÇÃO 
-    */
+  //* ---------------------------- CAPITALIZAÇÃO ----------------------------
 
   function getAllParagraphStyles(doc) {
     var estilos = [];
@@ -2209,9 +2465,9 @@
     // Cria a janela
     var win = new Window("dialog", "Adicionar Sigla");
     win.orientation = "column";
-    win.alignChildren = "fill";
+    win.alignChildren = "center";
 
-    win.add("statictext", undefined, "Digite a sigla:");
+    win.add("statictext", undefined, "    Digite a sigla que deseja adicionar:    .");
     var input = win.add("edittext", undefined, "");
     input.characters = 20;
     input.active = true;
@@ -2293,10 +2549,53 @@
     return null;
   }
 
+  function carregarExcecoesDoArquivo(caminho, idiomaSelecionado) {
+    try {
+      var arquivo = File(caminho);
+      if (!arquivo.exists) {
+        alert("Arquivo de exceções não encontrado.");
+        return [];
+      }
+
+      arquivo.encoding = "UTF-8";
+      arquivo.open("r");
+      var conteudo = arquivo.read();
+      arquivo.close();
+
+      conteudo = conteudo.replace(/\uFEFF/g, ""); // Remove BOM
+      conteudo = conteudo.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+      var linhas = conteudo.split("\n");
+      var excecoes = [];
+      var idiomaAtual = null;
+
+      for (var i = 0; i < linhas.length; i++) {
+        var linha = linhas[i];
+
+        if (typeof linha !== "string") continue;
+        linha = linha.replace(/^\s+|\s+$/g, ""); // trim
+
+        if (!linha || /^([#;]|\/\/)/.test(linha)) continue; // ignora comentários
+
+        if (/^\[.+\]$/.test(linha)) {
+          // Cabeçalho de idioma
+          idiomaAtual = linha.replace(/^\s*\[|\]\s*$/g, "");
+        } else if (idiomaAtual === idiomaSelecionado) {
+          excecoes.push(linha);
+        }
+      }
+
+      return excecoes;
+    } catch (e) {
+      return [];
+    }
+  }
+
   function aplicarCapitalizacaoComGREP(
     estilosSelecionados,
     idiomaSelecionado,
     capitalizacaoSelecionada
+    
   ) {
     try {
       var doc = app.activeDocument;
@@ -2309,95 +2608,18 @@
         alert("estilosSelecionados não é um array válido.");
         return 0;
       }
-
-      var excecoes = {
-        Português: [
-          "de",
-          "na",
-          "pra",
-          "da",
-          "do",
-          "das",
-          "dos",
-          "e",
-          "em",
-          "com",
-          "por",
-          "para",
-          "a",
-          "o",
-          "as",
-          "os",
-          "nos",
-        ],
-        Inglês: [
-          "a",
-          "an",
-          "and",
-          "but",
-          "or",
-          "for",
-          "nor",
-          "as",
-          "at",
-          "by",
-          "in",
-          "of",
-          "on",
-          "per",
-          "to",
-          "the",
-          "with",
-        ],
-        Polonês: [
-          "i",
-          "oraz",
-          "a",
-          "ale",
-          "lecz",
-          "lub",
-          "czy",
-          "nie",
-          "w",
-          "na",
-          "do",
-          "z",
-          "od",
-          "pod",
-          "nad",
-          "przed",
-          "po",
-          "bez",
-          "dla",
-          "o",
-          "u",
-        ],
-        Francês: [
-          "à",
-          "au",
-          "aux",
-          "avec",
-          "chez",
-          "dans",
-          "de",
-          "des",
-          "du",
-          "en",
-          "et",
-          "la",
-          "le",
-          "les",
-          "ou",
-          "par",
-          "pour",
-          "sur",
-          "un",
-          "une",
-        ],
-      };
-
-      var palavrasMin = excecoes[idiomaSelecionado] || [];
       var siglasMaiusculas = carregarSiglasDoArquivo();
+
+
+      // Carrega as exceções apenas do idioma selecionado
+      var palavrasMin = carregarExcecoesDoArquivo(
+        "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/SiglasExcecoes.txt",
+        idiomaSelecionado
+      );
+
+      if (palavrasMin.length === 0) {
+        alert("Nenhuma exceção encontrada para o idioma: " + idiomaSelecionado);
+      } 
 
       function estaNaLista(palavra, lista) {
         for (var i = 0; i < lista.length; i++) {
