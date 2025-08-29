@@ -26,7 +26,10 @@
   //!        fazer ela mostrar a quantidade de mudanças na tela de resultado final e fazer o calculo do tempo salvo
    
   // TODO - [] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
-  
+  //^            Testar com o aplicativo "Zint", pelo visto ele cria o codigo 2d datamatrix, podemos automatizar para ele pegar o numero que o 
+  //^            usuário digitar e receber na volta o png do codigo
+
+
   // TODO - [] - Passar funcao por funcao fazendo uma verificacao do codigo e vendo se funciona tudo certinho
    
 //#endregion
@@ -125,6 +128,7 @@
     grupoPrincipal.orientation = "row";
     grupoPrincipal.alignChildren = "top";
 
+
     var coluna1 = grupoPrincipal.add("group");
     coluna1.orientation = "column";
     coluna1.alignChildren = "fill";
@@ -200,6 +204,20 @@
       telaFinal();
       },
       "Mostra pontos finais dentro de tabelas para o usuário decidir se quer mantê-los ou excluí-los"
+    );
+
+    // Novo botão centralizado abaixo dos dois últimos botões
+    var grupoCentral = janela.add("group");
+    grupoCentral.orientation = "row";
+    grupoCentral.alignment = "center"; // Centraliza no meio da janela
+
+    criarBotao(
+      grupoCentral,
+      "📊 Gerar Código 2D 📊",
+      function () {
+        alert("Novo botão centralizado clicado!");
+      },
+      "Gera o código 2D e insere automaticamente na pasta vínculos e no seu documento"
     );
 
     janela.add(
