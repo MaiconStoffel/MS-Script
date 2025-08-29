@@ -5,19 +5,32 @@
   * ^brief          : Script for InDesign Automations
   * ^author 	      : mschwertz / 2025
   ******************************************************************************
-  *                       TODO - @mschwertz
-  * 
-  * *TODO - [X] - Arrumar funcoes de troca de decimal (as duas)
-  * *TODO - [X] - Colocar o espanhol, russo, italiano, turco e holandes como opcao de idioma na Capitalizacao nas excessoes
-  * *TODO - [X] - Arrumar a parte das siglas "de", "para" e tal da Capitalização, verificar pra colocar em um txt ?
-  * ^TODO - [] - Tirar o botao de contabilizar o tempo e fazer como padrao
-  *  TODO - [] - Verificar a funcao de Capitalização para pegar arquivos de Programação que nao possuem o estilo.
-  *  TODO - [] - Verificar se vale a pena colocar aquela tela de execucao quando clicar em executar.
-  *  TODO - [] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
-  *  TODO - [] - Passar funcao por funcao fazendo uma verificacao do codigo
-  ******************************************************************************
-  */
-/* USER CODE END Header */
+  /* USER CODE END Header */
+
+  var developerInfo = "Desenvolvido por: @mschwertz - Versão 1.0"; 
+  
+//#region to-do
+//                        TODO - @mschwertz
+
+  //* - [✓] - Arrumar funcoes de troca de decimal (as duas)
+  //* - [✓] - Colocar o espanhol, russo, italiano, turco e holandes como opcao de idioma na Capitalizacao nas excessoes
+  //* - [✓] - Arrumar a parte das siglas "de", "para" e tal da Capitalização, verificar pra colocar em um txt ?
+  //* - [✓] - Tirar o botao de contabilizar o tempo e fazer como padrao
+  //* - [✓] - Verificar a funcao de Capitalização para pegar arquivos de Programação que nao possuem o estilo.
+  //* - [✓] - Tela de execução quando chama a funcao de "Aplicação de Estilos"
+  //* - [✓] - Revisar função de capitalização para textos dentro de tabelas, nao está mudando.
+  //* - [✓] - Verificar se vale a pena colocar aquela tela de execucao quando clicar em executar.
+  //* - [✓] - Verificar pra colocar a função de Ponto Final em Tabela na soma de tempo total -> Passar ela pela tela final e executar
+  //* - [✓] - Verificar o motivo da funcao de capitalização aparece 0 no tempo salvo
+  //! - [X] - Verificar de colocar a funcao da aplicação de estilos na soma de tempo total - Não tem motivo de passar ela pela tela final e nem executar, mas podemos
+  //!        fazer ela mostrar a quantidade de mudanças na tela de resultado final e fazer o calculo do tempo salvo
+   
+  // TODO - [] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
+  
+  // TODO - [] - Passar funcao por funcao fazendo uma verificacao do codigo e vendo se funciona tudo certinho
+   
+//#endregion
+  
 (function () {  
   ("highlight Force Decorate");
   if (app.documents.length === 0) {
@@ -25,8 +38,7 @@
     return;
   }
 
-  var developerInfo = "Developed by: @mschwertz - Version 1.0";
-
+  //#region Variáveis 
   var doc = app.activeDocument;
 
   // PL -  „|”
@@ -40,10 +52,11 @@
   var aspasAbertura = "";
   var aspasFechamento = "";
   var aplicarAspas = false;
-
-  var ContabilizarTempo = false;
+  
+  var ContabilizarTempo = true;
   var contagensIniciais = {}; 
 
+  var ajustarPontoFinalTabela = false;
   var ignorarTabelasBarra = false;
   var ajustarEspacamentoDoisPontos_Antes = false;
   var ignorarExclusaoParenteses = false;
@@ -52,19 +65,20 @@
   var ajustarVirgulaEspaco = false;
   var ajustarIgualEspaco = false;
   var ajustarEspacamentoDoisPontos = false;
-  var ajustarPontoFinalemTabela = false;
   var ajustarPontoFinalEspaco = false;
   var ajustarEspacoAntesPercent = false;
   var ajustarEspacamentoPontoVirgula = false;
   var idiomaEscolhido = "";
 
-  //Capitalizacao
+  //? Capitalizacao
+
   var idiomaSelecionado = null; //eh diferente do idiomaEscolhido
   var capitalizacaoSelecionada = null;
   var estilosSelecionados = [];
   var contadorCapitalizacao = 0;
 
-  // Variáveis contagem
+  //? Variáveis contagem
+
   var contadorAspas = 0;
   var contadorPontoVirgula = 0;
   var contadorVirgulaPonto = 0;
@@ -72,20 +86,30 @@
   var contadorBarraEspaco = 0;
   var contadorIgualEspaco = 0;
   var contadorEspacamentoDoisPontos = 0;
-  var contadorPontoFinalemTabela = 0;
   var contadorPontoFinalEspaco = 0;
   var contadorEspacoAntesPercent = 0;
   var contadorEspacoDepoisPontoVirgula = 0;
+  var contadorPontoFinalemTabela = 0;
 
-  //variaveis da troca do decimal
+  //? AplicaçãoEstilos
 
+  var prefixoEscolhido = "";
+  var corEscolhida = "";
+  var fonteEscolhida = "";
+  var estiloEscolhido = "";
+  var tamanhoEscolhido = "";
 
+  //? variaveis da troca do decimal
+
+  var dadosTempoSalvo = null;
   var trocarPontoPorVirgula = false;
   var trocarVirgulaPorPonto = false;
   var paginasSelecionadasDecimal = ""; // var q conteem o que o usuario escreveu na troca decimal, porém mais filtrada e arrumada
   var aplicarEmTodasAsPaginas = true; // padrao pra aplicar a mudança decimal em todas as pgns
   var paginasArray = []; // array q conteem as paginas que o usuario digitou
   var inputPaginas; // var pra receber o que o usuario escreveu nas pgns da troca decimal
+
+  //#endregion
 
   function TelaInicial() {
     var janela = new Window("dialog", "");
@@ -117,7 +141,6 @@
       botao.preferredSize = tamanhoBotao;
       botao.helpTip = helpTip || "";
       botao.onClick = function () {
-        ContabilizarTempo = chkContabilizarTempo.value;
         janela.close();
         onClick();
       };
@@ -143,6 +166,15 @@
     );
 
     criarBotao(
+      coluna1,
+      "✓ Aplicação de Estilos ✓",
+      function () {
+       telaAplicacaoEstilos ();
+      },
+      "Filtra textos com base nas definições do usuário e aplica estilos de parágrafos a ele"
+    );
+
+    criarBotao(
       coluna2,
       "∞ Separador Decimal ∞",
       function () {
@@ -160,13 +192,15 @@
       "Ajustes gerais de espaçamento para pontuação e símbolos"
     );
 
-    var chkContabilizarTempo = janela.add(
-      "checkbox",
-      undefined,
-      "Contabilizar Tempo Salvo?"
-    ); 
-    chkContabilizarTempo.helpTip = "Se marcado, ao final do processo você conseguirá visualizar a estimativa do tempo salvo utilizando o script.";
-    chkContabilizarTempo.value = true;
+    criarBotao(
+      coluna2,
+      "● Ponto Final em Tabela ●",
+      function () {
+      ajustarPontoFinalTabela = true;
+      telaFinal();
+      },
+      "Mostra pontos finais dentro de tabelas para o usuário decidir se quer mantê-los ou excluí-los"
+    );
 
     janela.add(
       "statictext",
@@ -478,37 +512,6 @@
     var linha = win.add("panel");
     linha.alignment = "fill";
 
-    var chkPontoFinalTabela = win.add(
-      "checkbox",
-      undefined,
-      "Verificar os Pontos Finais dentro de tabelas?"
-    );
-    chkPontoFinalTabela.helpTip = "Se selecionado, o usuário irá passar por todos os pontos finais dentro de tabelas para decidir se quer exclui-los ou não.";
-
-    chkPontoFinalTabela.onClick = function () {
-      if (chkPontoFinalTabela.value) {
-        // Desmarca todos os outros checkboxes
-        for (var i = 0; i < checkboxes.length; i++) {
-          checkboxes[i].value = false;
-          checkboxes[i].enabled = false;
-        }
-        chk2PEspacoAntes.value = false;
-        chk2PEspacoAntes.enabled = false;
-        chkTabelas.value = false;
-        chkTabelas.enabled = false;
-        chkSelecionarTodos.value = false;
-        chkSelecionarTodos.enabled = false;
-      } else {
-        // Reabilita todos quando desmarcado
-        for (var i = 0; i < checkboxes.length; i++) {
-          checkboxes[i].enabled = true;
-        }
-        chk2PEspacoAntes.enabled = true;
-        chkTabelas.enabled = true;
-        chkSelecionarTodos.enabled = true;
-      }
-    };
-
     var chkSelecionarTodos = win.add(
       "checkbox",
       undefined,
@@ -654,7 +657,6 @@
     };
 
     proximo.onClick = function () {
-      ajustarPontoFinalemTabela = chkPontoFinalTabela.value;
       ajustarVirgulaEspaco = chkVirgulaEspaco.value;
       ajustarIgualEspaco = chkIgualEspaco.value;
       ajustarBarraEspaco = chkBarraEspaco.value;
@@ -752,9 +754,9 @@
     listaEstilosBox.preferredSize = [300, 150];
 
     for (var i = 0; i < listaEstilos.length; i++) {
-      if (listaEstilos[i] !== "[Parágrafo padrão]") {
+     // if (listaEstilos[i] !== "[Parágrafo padrão]") {
         listaEstilosBox.add("item", listaEstilos[i]);
-      }
+      //}
     }
 
     //faz com q o usuario n consiga mudar as opcoes até desmarcar a opcao padrao
@@ -844,7 +846,7 @@
 
     /*---------------------------------------------------------------------------------*/
 
-    if (ajustarPontoFinalemTabela)
+    if (ajustarPontoFinalTabela)
       resumo += "\n -  Ajustes em ' . ' dentro de tabelas\n";
     if (ajustarPontoFinalEspaco)
       resumo += "\n -  Padronizar espaçamento do Ponto '.  '\n";
@@ -879,7 +881,7 @@
     /*---------------------------------------------------------------------------------*/
 
     if (
-      !ajustarPontoFinalemTabela &&
+      !ajustarPontoFinalTabela &&
       !aplicarAspas &&
       !trocarPontoPorVirgula &&
       !trocarVirgulaPorPonto &&
@@ -921,38 +923,90 @@
     };
 
     executar.onClick = function () {
-      win.close();
+      if (ajustarPontoFinalTabela) {
+        win.close();
 
-      // Define quais operações o usuário selecionou
-      var ops = {
-        aplicarAspas: aplicarAspas,
-        trocarPontoPorVirgula: trocarPontoPorVirgula,
-        trocarVirgulaPorPonto: trocarVirgulaPorPonto,
-        ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
-        ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
-        ajustarBarraEspaco: ajustarBarraEspaco,
-        ajustarIgualEspaco: ajustarIgualEspaco,
-        ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
-      };
+        var ops = {
+          ajustarPontoFinalTabela:ajustarPontoFinalTabela,
+          };
 
-      if (ContabilizarTempo) {
-        contagensIniciais = contarOcorrencias(app.activeDocument, ops);
+          if (ContabilizarTempo) {
+            contagensIniciais = contarOcorrencias(app.activeDocument, ops);
 
-        // TESTE: exibe os caracteres encontrados
-        var testeResultado = "";
-        for (var key in contagensIniciais) {
-          testeResultado += key + ": " + contagensIniciais[key] + "\n";
+            // TESTE: exibe os caracteres encontrados
+            var testeResultado = "";
+            for (var key in contagensIniciais) {
+              alert("entrou");
+              testeResultado += key + ": " + contagensIniciais[key] + "\n";
+            }
+          }
+
+          fncAjustarPontoFinalTabela(function (count) {
+            contadorPontoFinalemTabela = count;
+
+            var mensagem = "\n                    Correções concluídas!\n\n";
+            if (contadorPontoFinalemTabela)
+              mensagem +=
+                "✅ " +
+                contadorPontoFinalemTabela +
+                " - Ajustes em Pontos finais dentro de tabelas\n";
+
+            // --- MONTA CONTADORES ---
+            var contadoresAlteracoes = {
+              "Pontos finais removidos em tabelas": contadorPontoFinalemTabela,
+            };
+
+            // --- SALVA TEMPO ---
+            if (ContabilizarTempo) {
+              dadosTempoSalvo = salvarTempo(
+                contadoresAlteracoes,
+                contagensIniciais,
+                {
+                  ajustarPontoFinalTabela: true,
+                }
+              );
+            }
+
+            // --- MOSTRA RESULTADO FINAL ---
+            telaResultadoFinal(mensagem, contadoresAlteracoes);
+          });
+
+
+        return; // evita continuar antes do usuário finalizar
+      } else {
+        win.close();
+
+        // Define quais operações o usuário selecionou
+        var ops = {
+          aplicarAspas: aplicarAspas,
+          trocarPontoPorVirgula: trocarPontoPorVirgula,
+          trocarVirgulaPorPonto: trocarVirgulaPorPonto,
+          ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
+          ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
+          ajustarBarraEspaco: ajustarBarraEspaco,
+          ajustarIgualEspaco: ajustarIgualEspaco,
+          ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
+        };
+
+        if (ContabilizarTempo) {
+          contagensIniciais = contarOcorrencias(app.activeDocument, ops);
+
+          // TESTE: exibe os caracteres encontrados
+          var testeResultado = "";
+          for (var key in contagensIniciais) {
+            alert("entrou");
+            testeResultado += key + ": " + contagensIniciais[key] + "\n";
+          }
         }
-      }
 
-      // Executa a correção do documento
-      app.doScript(
-        executarCorrecao,
-        ScriptLanguage.JAVASCRIPT,
-        undefined,
-        UndoModes.ENTIRE_SCRIPT,
-        "Correções Projeto TRI"
-      );
+        app.doScript(
+          executarCorrecao,
+          ScriptLanguage.JAVASCRIPT,
+          undefined,
+          UndoModes.ENTIRE_SCRIPT,
+          "Correções Projeto TRI"
+        );
+      }
     };
 
     win.center();
@@ -960,7 +1014,7 @@
   }
 
   function executarCorrecao() {
-
+    alertaTemporario("Iniciando as correções... ⌛", 1000);
     if (aplicarAspas) {
       removerEspacoAntesAspaRetas(doc);
       removerEspacoDepoisAspaRetas(doc);
@@ -995,27 +1049,6 @@
 
     if (ajustarIgualEspaco) contadorIgualEspaco = ajustarEspacoIgual();
 
-    if (ajustarPontoFinalemTabela) {
-      ajustarEspacoPontoFinalTabela(function (count) {
-        contadorPontoFinalemTabela = count;
-
-        // monta a mensagem completa aqui, incluindo todos os outros contadores
-        var mensagem = "\nCorreções concluídas!\n\n";
-        if (aplicarAspas)
-          mensagem += "✅ " + contadorAspas + " - Aspas alteradas\n";
-        if (contadorPontoFinalemTabela)
-          mensagem +=
-            "✅ " +
-            contadorPontoFinalemTabela +
-            " - Ajustes em Pontos finais dentro de tabelas\n";
-
-        // chama a tela de resultado final
-        telaResultadoFinal(mensagem);
-      });
-
-      return; // evita continuar antes do usuário finalizar
-    }
-
     if (ajustarPontoFinalEspaco) {
       var contagemPF1 = removerEspacoAntesPontoFinal();
       var contagemPF2 = corrigirEspacoDepoisPontoFinal();
@@ -1038,11 +1071,7 @@
     }
 
     if (estilosSelecionados && estilosSelecionados.length > 0) {
-      contadorCapitalizacao = aplicarCapitalizacaoComGREP(
-        estilosSelecionados,
-        idiomaSelecionado,
-        capitalizacaoSelecionada
-      );
+      contadorCapitalizacao = aplicarCapitalizacaoComGREP(estilosSelecionados,idiomaSelecionado,capitalizacaoSelecionada);
     }
 
     var mensagem = "\n                    Correções concluídas!\n\n";
@@ -1112,7 +1141,6 @@
     }
 
     if (
-      !ajustarEspacoPontoFinalTabela &&
       !aplicarAspas &&
       !trocarPontoPorVirgula &&
       !trocarVirgulaPorPonto &&
@@ -1137,7 +1165,21 @@
       "Ajustes em ' ; '": contadorEspacoDepoisPontoVirgula,
       "Ajustes em ' % '": contadorEspacoAntesPercent,
       "Ajustes em ' / '": contadorBarraEspaco,
+      "Alterações de Caixa": contadorCapitalizacao,
     };
+
+    var dadosTempoSalvo = salvarTempo(contadoresAlteracoes, contagensIniciais, {
+      aplicarAspas: aplicarAspas,
+      trocarPontoPorVirgula: trocarPontoPorVirgula,
+      trocarVirgulaPorPonto: trocarVirgulaPorPonto,
+      ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
+      ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
+      ajustarBarraEspaco: ajustarBarraEspaco,
+      ajustarIgualEspaco: ajustarIgualEspaco,
+      ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
+      aplicarCapitalizacao: (contadorCapitalizacao > 0), // 👈 agora com o nome certo
+
+    });
 
     telaResultadoFinal(mensagem, contadoresAlteracoes);
   }
@@ -1183,29 +1225,21 @@
         );
         return;
       }
-      calcularTempoSalvo(
+      mostrarJanelaTempo(
         contadoresAlteracoes,
         contagensIniciais,
-        {
-          aplicarAspas: aplicarAspas,
-          trocarPontoPorVirgula: trocarPontoPorVirgula,
-          trocarVirgulaPorPonto: trocarVirgulaPorPonto,
-          ajustarEspacamentoDoisPontos: ajustarEspacamentoDoisPontos,
-          ajustarEspacamentoPontoVirgula: ajustarEspacamentoPontoVirgula,
-          ajustarBarraEspaco: ajustarBarraEspaco,
-          ajustarIgualEspaco: ajustarIgualEspaco,
-          ajustarEspacoAntesPercent: ajustarEspacoAntesPercent,
-        }
-      );
+        dadosTempoSalvo,
+        );
     };
+
+
 
     win.center();
     win.show();
   }
 
-  
+  //#region Tempo Salvo
   //*----------------- FUNCAO DE CALCULO DO TEMPO SALVO -----------------
-  
 
   var op2Greps = {
     trocarPontoPorVirgula: ["\\."],
@@ -1227,6 +1261,8 @@
     ajustarIgualEspaco: "Quantidade de '='",
     ajustarEspacoAntesPercent: "Quantidade de '%'",
     aplicarAspas: "Quantidade de aspas",
+    ajustarPontoFinalTabela: "Quantidade de pontos finais em tabelas",
+    aplicarCapitalizacao: "Quantidade de títulos candidatos",
   };
 
   var op2LabelAlteracao = {
@@ -1238,6 +1274,8 @@
     ajustarIgualEspaco: "Ajustes em ' = '",
     ajustarEspacoAntesPercent: "Ajustes em ' % '",
     aplicarAspas: "Aspas alteradas",
+    ajustarPontoFinalTabela: "Pontos finais removidos em tabelas",
+    aplicarCapitalizacao: "Alterações de Caixa",
   };
 
   function contarOcorrencias(doc, ops) {
@@ -1289,105 +1327,172 @@
   win.close();
   }
 
-  function calcularTempoSalvo(contadoresAlteracoes, contagensIniciais, ops) {
-    alertaTemporario("Calculando o Tempo Salvo...", 1000);
-    var tarefas = [
-      { op: "trocarPontoPorVirgula" },
-      { op: "trocarVirgulaPorPonto" },
-      { op: "ajustarEspacamentoDoisPontos" },
-      { op: "ajustarEspacamentoPontoVirgula" },
-      { op: "ajustarBarraEspaco" },
-      { op: "ajustarIgualEspaco" },
-      { op: "ajustarEspacoAntesPercent" },
-      { op: "aplicarAspas" },
-    ];
+  function salvarTempo(contadoresAlteracoes, contagensIniciais, ops) {
+  var tarefas = [
+    { op: "trocarPontoPorVirgula" },
+    { op: "trocarVirgulaPorPonto" },
+    { op: "ajustarEspacamentoDoisPontos" },
+    { op: "ajustarEspacamentoPontoVirgula" },
+    { op: "ajustarBarraEspaco" },
+    { op: "ajustarIgualEspaco" },
+    { op: "ajustarEspacoAntesPercent" },
+    { op: "aplicarAspas" },
+    { op: "aplicarCapitalizacao" },
+    { op: "ajustarPontoFinalTabela" },
+  ];
 
-    var tarefasAtivas = [];
-    for (var t = 0; t < tarefas.length; t++) {
-      if (ops && ops[tarefas[t].op]) tarefasAtivas.push(tarefas[t]);
-    }
-
-    var tempoNaoAlterado = 3;
-    var tempoAlterado = 8;
-    var tempoTotalSegundos = 0;
-
-    for (var x = 0; x < tarefasAtivas.length; x++) {
-      var tarefa = tarefasAtivas[x];
-      var labelContagem = op2LabelContagem[tarefa.op];
-      var labelAlteracao = op2LabelAlteracao[tarefa.op];
-
-      var totalTarefa = contagensIniciais[labelContagem] || 0;
-      var alteradas = contadoresAlteracoes[labelAlteracao] || 0;
-      var naoAlteradas = Math.max(totalTarefa - alteradas, 0);
-
-      tempoTotalSegundos +=
-        naoAlteradas * tempoNaoAlterado + alteradas * tempoAlterado;
-    }
-
-    var tempoTotalMinutos = tempoTotalSegundos / 60;
-    var tempoTotalHoras = tempoTotalMinutos / 60;
-
-    // --- CRIA A JANELA DE EXIBIÇÃO ---
-    var winTempoSalvo = new Window("dialog", "Resultado Tempo Salvo ⏱");
-    winTempoSalvo.orientation = "column";
-    winTempoSalvo.alignChildren = "center";
-
-    var resultado =
-      "----- Quantidade de caracteres antes das alterações -----\n\n";
-
-    for (var key in contagensIniciais) {
-      resultado += key + ": " + contagensIniciais[key] + "\n";
-    }
-
-    resultado += "\n------------------------- Alterações feitas -------------------------\n\n";
-    
-    var algumaAlteracao = false;
-    for (var k in contadoresAlteracoes) {
-      if (contadoresAlteracoes[k] > 0) {
-        resultado += "✅ " + contadoresAlteracoes[k] + " - " + k + "\n";
-        algumaAlteracao = true;
-      }
-    }
-    if (!algumaAlteracao) {
-      resultado += "- Nenhuma alteração feita.\n";
-    }
-
-    resultado +=
-      "\n------------ Tempo total estimado economizado ------------\n\n" +
-      "- " +
-      tempoTotalSegundos.toFixed(0) +
-      " segundos\n" +
-      "- " +
-      tempoTotalMinutos.toFixed(2) +
-      " minutos\n" +
-      "- " +
-      tempoTotalHoras.toFixed(2) +
-      " horas\n";
-
-    var caixaResultado = winTempoSalvo.add("edittext", undefined, resultado, {
-      multiline: true,
-      readonly: true,
-    });
-    caixaResultado.size = [320, 300];
-
-    var fechar = winTempoSalvo.add("button", undefined, "Fechar");
-    fechar.onClick = function () {
-      winTempoSalvo.close();
-    };
-
-    winTempoSalvo.show();
+  var tarefasAtivas = [];
+  for (var t = 0; t < tarefas.length; t++) {
+    if (ops && ops[tarefas[t].op]) tarefasAtivas.push(tarefas[t]);
   }
 
-  //*--------------------- FUNCOES DE CORRECAO DE ASPAS --------------------------------
-  /*
-          Funções para remover as aspas retas do arquivo.
-  Basicamente, elas removem os espaços antes e depois das aspas retas,
-  e depois substituem as aspas retas por aspas curvas, depois o codigo faz a substituição
-  das aspas curvas por aspas de acordo com o idioma selecionado.
+  var tempoCapitalizacao = 17;
+  var tempoNaoAlterado = 3;
+  var tempoAlterado = 8;
+  var tempoTotalSegundos = 0;
 
-  Isso tudo porque o InDesign detecta qualquer aspa como uma aspa reta, se eu colocar pra ele buscar por aspas retas,
-  ele vai substituir todas as aspas, polonesas,fracesas, alemãs, padrões, basicamente todas as aspas do arquivo.
-  */
+  for (var x = 0; x < tarefasAtivas.length; x++) {
+    var tarefa = tarefasAtivas[x];
+    var labelContagem = op2LabelContagem[tarefa.op];
+    var labelAlteracao = op2LabelAlteracao[tarefa.op];
+
+    var totalTarefa = contagensIniciais[labelContagem] || 0;
+    var alteradas = contadoresAlteracoes[labelAlteracao] || 0;
+    var naoAlteradas = Math.max(totalTarefa - alteradas, 0);
+
+    if (tarefa.op === "aplicarCapitalizacao") {
+      // cálculo especial para capitalização
+      tempoTotalSegundos += alteradas * tempoCapitalizacao;
+    } else {
+      // cálculo padrão
+      tempoTotalSegundos += naoAlteradas * tempoNaoAlterado + alteradas * tempoAlterado;
+    }
+  }
+
+  var tempoTotalMinutos = tempoTotalSegundos / 60;
+  var tempoTotalHoras = tempoTotalMinutos / 60;
+
+  // --- SALVAR TEMPO ACUMULADO EM BD ---
+  var caminhoArquivo =
+    "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/TempoSalvo.txt";
+  var horasAnteriores = lerTempoAcumulado(caminhoArquivo);
+  var horasAtualizadas = horasAnteriores + tempoTotalHoras;
+  salvarTempoAcumulado(caminhoArquivo, horasAtualizadas);
+
+  dadosTempoSalvo = {
+    segundos: tempoTotalSegundos,
+    minutos: tempoTotalMinutos,
+    horas: tempoTotalHoras,
+    horasAcumuladas: horasAtualizadas,
+  };
+
+  return dadosTempoSalvo;
+  }
+
+  function mostrarJanelaTempo(contadoresAlteracoes, contagensIniciais, dados) {
+  alertaTemporario("Carregando tempo salvo...", 500);
+
+  contagensIniciais = contagensIniciais || {};
+  contadoresAlteracoes = contadoresAlteracoes || {};
+  dados = dados ||
+    dadosTempoSalvo || {
+      segundos: 0,
+      minutos: 0,
+      horas: 0,
+      horasAcumuladas: 0,
+    };
+
+  var winTempoSalvo = new Window("dialog", "Resultado Tempo Salvo ⏱");
+  winTempoSalvo.orientation = "column";
+  winTempoSalvo.alignChildren = "center";
+
+  var resultado =
+    "----- Quantidade de caracteres antes das alterações -----\n\n";
+  for (var key in contagensIniciais) {
+    resultado += key + ": " + contagensIniciais[key] + "\n";
+  }
+
+  resultado +=
+    "\n------------------------- Alterações feitas -------------------------\n\n";
+
+  var algumaAlteracao = false;
+  for (var k in contadoresAlteracoes) {
+    if (contadoresAlteracoes[k] > 0) {
+      resultado += "✅ " + contadoresAlteracoes[k] + " - " + k + "\n";
+      algumaAlteracao = true;
+    }
+  }
+  if (!algumaAlteracao) {
+    resultado += "- Nenhuma alteração feita.\n";
+  }
+
+  var segundos = Number(dados.segundos) || 0;
+  var minutos = Number(dados.minutos) || 0;
+  var horas = Number(dados.horas) || 0;
+  var horasAcumuladas = Number(dados.horasAcumuladas) || 0;
+
+  resultado +=
+    "\n------------ Tempo total estimado economizado ------------\n\n" +
+    "- " +
+    segundos.toFixed(0) +
+    " segundos\n" +
+    "- " +
+    minutos.toFixed(2) +
+    " minutos\n" +
+    "- " +
+    horas.toFixed(2) +
+    " horas\n";
+
+  resultado +=
+    "\n-------------------- Tempo total acumulado --------------------\n\n" +
+    "- " +
+    horasAcumuladas.toFixed(2) +
+    " horas\n\n";
+
+  var caixaResultado = winTempoSalvo.add("edittext", undefined, resultado, {
+    multiline: true,
+    readonly: true,
+  });
+  caixaResultado.size = [320, 300];
+
+  var fechar = winTempoSalvo.add("button", undefined, "Fechar");
+  fechar.onClick = function () {
+    winTempoSalvo.close();
+  };
+
+  winTempoSalvo.show();
+  }
+
+  function lerTempoAcumulado(caminhoArquivo) {
+    var arquivo = new File(caminhoArquivo);
+    if (arquivo.exists) {
+      arquivo.open("r");
+      var conteudo = arquivo.read();
+      arquivo.close();
+
+      // Extrai apenas o número do texto
+      var match = conteudo.match(/([\d\.]+)/); // pega números e ponto decimal
+      if (match) {
+        return parseFloat(match[1]);
+      } else {
+        return 0;
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  function salvarTempoAcumulado(caminhoArquivo, novoTempo) {
+    var arquivo = new File(caminhoArquivo);
+    arquivo.open("w"); // sobrescreve
+    arquivo.write(
+      "Aproximadamente " + novoTempo.toFixed(2) + " horas foram salvas ao todo."
+    );
+    arquivo.close();
+  }
+
+  //#region Aspas
+  //*--------------------- FUNCOES DE CORRECAO DE ASPAS --------------------------------
 
   function removerEspacoDepoisAspaRetas() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -1433,11 +1538,6 @@
 
     app.findGrepPreferences = app.changeGrepPreferences = null;
   }
-
-  /*
-  eh necessario adicionarmos funcoes para retirar os espacos antes e depois das aspas,
-  pois quando não havia essas funcoes acontecia o erro de duplicacao das aspas de abertura.
-  */
 
   function removerEspacoDepoisAspaAbertura() {
     // alert("Atenção: Removendo espaços após aspas de abertura.");
@@ -1524,6 +1624,7 @@
     return totalAlteracoes;
   }
 
+  //#region Decimais
   //*---------------------------- FUNCOES TROCA DE DECIMAIS ----------------------------
 
   function estaEmReferenciaCruzada(trecho) {
@@ -1899,7 +2000,13 @@
     return paginasValidas;
   }
 
+  //#region Gerais
   //*-------------------------------- GERAIS -------------------------------------------
+  
+
+
+  //#region Vírgula
+  //*------------------------- Espaçamento Vírgula ------------------------------------
 
   function removerEspacoAntesVirgula() {
     //remove qualquer espaço antes de uma virgula
@@ -1922,6 +2029,9 @@
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
   }
+
+  //#region Dois-Pontos
+  //*------------------------- Espaçamento Dois-Pontos ----------------------------------
 
   function removerEspacoAntesDoisPontos() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -1969,6 +2079,9 @@
     return totalAlteracoes;
   }
 
+  //#region Ponto-Vírgula
+  //*------------------------ Espaçamento Ponto-Vírgula ----------------------------------
+
   function removerEspacoAntesPontoVirgula() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     app.findGrepPreferences.findWhat = "\\s+;"; // espaços antes do ;
@@ -1988,6 +2101,9 @@
     app.findGrepPreferences = app.changeGrepPreferences = null;
     return count;
   }
+
+  //#region Barra
+  //*--------------------------------- Espaçamento Barra ---------------------------------
 
   function abrirJanelaAdicionarSiglaBarra() {
     var caminho =
@@ -2209,6 +2325,9 @@
   return total;
   }
 
+  //#region Igual (=)
+  //*------------------------------- Espaçamento Igual (=) -------------------------------
+  
   function ajustarEspacoIgual(doc) {
     app.findGrepPreferences = app.changeGrepPreferences = null;
     var doc = app.activeDocument;
@@ -2227,6 +2346,9 @@
 
     return (changed1 ? changed1.length : 0);
   }
+
+  //#region Ponto Final
+  //*------------------------------ Espaçamento Ponto-Final ------------------------------
 
   function removerEspacoAntesPontoFinal() {
     app.findGrepPreferences = app.changeGrepPreferences = null;
@@ -2248,7 +2370,34 @@
     return count;
   }
 
-  function ajustarEspacoPontoFinalTabela(onFinish) {
+  //#region Percentual(%)
+  //*----------------------------- Espaçamento Percentual (%) -----------------------------
+
+
+  function ajustarEspacoAntesPercentual(doc) {
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+    var doc = app.activeDocument;
+
+    // Espaço antes do % quando falta
+    app.findGrepPreferences.findWhat = "([^\\s])%";
+    app.changeGrepPreferences.changeTo = "$1 %";
+    var changed1 = doc.changeGrep();
+
+    // Espaço depois do % quando falta
+    app.findGrepPreferences.findWhat = "%(\\S)";
+    app.changeGrepPreferences.changeTo = "% $1";
+    var changed2 = doc.changeGrep();
+
+    app.findGrepPreferences = app.changeGrepPreferences = null;
+
+    return (changed1 ? changed1.length : 0);
+  }
+
+  //#region Ponto Tabela
+  //* ------------------------ PONTO FINAL EM TABELA ------------------------
+
+  function fncAjustarPontoFinalTabela(onFinish) {
+    alertaTemporario ("Buscando pontos finais dentro de tabelas...", 1500)
     if (app.documents.length === 0) {
       alert("Nenhum documento aberto.");
       return;
@@ -2297,7 +2446,7 @@
         win.activePage = page;
 
         win.zoom(ZoomOptions.FIT_SPREAD);
-        win.zoomPercentage = 200; //modifica o valor do zoom
+        win.zoomPercentage = 200; 
 
         //centraliza a tela
         var vb = tf.visibleBounds;
@@ -2318,6 +2467,8 @@
       undefined,
       "Ocorrência 1 de " + ocorrencias.length
     );
+    info.characters = 25;
+    info.justify = "center";
 
     var btnGroup = win.add("group");
     btnGroup.orientation = "row";
@@ -2367,129 +2518,111 @@
 
     selecionarOcorrencia(indiceAtual);
     atualizarInfo();
+    
     win.show();
   }
 
-  function ajustarEspacoAntesPercentual(doc) {
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-    var doc = app.activeDocument;
-
-    // Espaço antes do % quando falta
-    app.findGrepPreferences.findWhat = "([^\\s])%";
-    app.changeGrepPreferences.changeTo = "$1 %";
-    var changed1 = doc.changeGrep();
-
-    // Espaço depois do % quando falta
-    app.findGrepPreferences.findWhat = "%(\\S)";
-    app.changeGrepPreferences.changeTo = "% $1";
-    var changed2 = doc.changeGrep();
-
-    app.findGrepPreferences = app.changeGrepPreferences = null;
-
-    return (changed1 ? changed1.length : 0);
-  }
-
+  //#region Capitalização
   //* ---------------------------- CAPITALIZAÇÃO ----------------------------
 
   function getAllParagraphStyles(doc) {
-    var estilos = [];
-
-    function coletar(estilosLista) {
-      for (var i = 0; i < estilosLista.length; i++) {
-        var estilo = estilosLista[i];
-        if (!estilo.name.match(/^\[.*\]$/)) {
-          estilos.push(estilo.name);
-        }
-      }
+  var estilos = [];
+  function coletar(estilosLista) {
+    for (var i = 0; i < estilosLista.length; i++) {
+      var estilo = estilosLista[i];
+      // NÃO filtra mais "[Parágrafo padrão]" nem outros entre colchetes
+      estilos.push(estilo.name);
     }
-
-    coletar(doc.paragraphStyles);
-
-    var grupos = doc.paragraphStyleGroups;
-    for (var j = 0; j < grupos.length; j++) {
-      coletar(grupos[j].paragraphStyles);
-    }
-
-    return estilos;
+  }
+  coletar(doc.paragraphStyles);
+  var grupos = doc.paragraphStyleGroups;
+  for (var j = 0; j < grupos.length; j++) {
+    coletar(grupos[j].paragraphStyles);
+  }
+  return estilos;
   }
 
   function abrirJanelaAdicionarSigla() {
-    var caminho =
-      "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/SiglasPadrao.txt";
+  var caminho =
+    "Q:/GROUPS/BR_SC_JGS_WAU_DESENVOLVIMENTO_PRODUTOS/Documentos dos Produtos/Manuais dos Produtos/MS-SCRIPT/SiglasPadrao.txt";
 
-    function salvarSigla(sigla) {
-      var arquivo = File(caminho);
-      var siglas = [];
+  function salvarSigla(sigla) {
+    var arquivo = File(caminho);
+    var siglas = [];
 
-      if (arquivo.exists) {
-        if (arquivo.open("r")) {
-          var conteudo = arquivo.read();
-          arquivo.close();
-          siglas = conteudo.split(/[\r\n]+/);
-        } else {
-          alert("Erro ao abrir o arquivo para leitura.");
-          return;
-        }
+    if (arquivo.exists) {
+      if (arquivo.open("r")) {
+        var conteudo = arquivo.read();
+        arquivo.close();
+        siglas = conteudo.split(/[\r\n]+/);
       } else {
-        alert("Arquivo NÃO existe. Será criado.");
-      }
-
-      // Remove espaços e repete uppercase
-      sigla = sigla.replace(/\s+/g, "").toUpperCase();
-
-      // Verifica duplicata sem usar .indexOf
-      var jaExiste = false;
-      for (var i = 0; i < siglas.length; i++) {
-        if (siglas[i].toUpperCase() === sigla) {
-          jaExiste = true;
-          break;
-        }
-      }
-
-      if (jaExiste) {
-        alert("Essa sigla já existe nesse banco de dados! ");
+        alert("Erro ao abrir o arquivo para leitura.");
         return;
       }
+    } else {
+      alert("Arquivo NÃO existe. Será criado.");
+    }
 
-      siglas.push(sigla);
+    // Remove espaços e repete uppercase
+    sigla = sigla.replace(/\s+/g, "").toUpperCase();
 
-      if (arquivo.open("w")) {
-        arquivo.write(siglas.join("\n"));
-        arquivo.close();
-        alert("Sigla salva com sucesso.");
-      } else {
-        alert("Erro ao abrir o arquivo para escrita.");
+    // Verifica duplicata sem usar .indexOf
+    var jaExiste = false;
+    for (var i = 0; i < siglas.length; i++) {
+      if (siglas[i].toUpperCase() === sigla) {
+        jaExiste = true;
+        break;
       }
     }
 
-    // Cria a janela
-    var win = new Window("dialog", "Adicionar Sigla");
-    win.orientation = "column";
-    win.alignChildren = "center";
+    if (jaExiste) {
+      alert("Essa sigla já existe nesse banco de dados! ");
+      return;
+    }
 
-    win.add("statictext", undefined, "    Digite a sigla que deseja adicionar:    .");
-    var input = win.add("edittext", undefined, "");
-    input.characters = 20;
-    input.active = true;
+    siglas.push(sigla);
 
-    var botoes = win.add("group");
-    var salvar = botoes.add("button", undefined, "Salvar", { name: "ok" });
-    var cancelar = botoes.add("button", undefined, "Cancelar", {
-      name: "cancel",
-    });
+    if (arquivo.open("w")) {
+      arquivo.write(siglas.join("\n"));
+      arquivo.close();
+      alert("Sigla salva com sucesso.");
+    } else {
+      alert("Erro ao abrir o arquivo para escrita.");
+    }
+  }
 
-    salvar.onClick = function () {
-      var sigla = input.text;
-      salvarSigla(sigla);
-      win.close();
-    };
+  // Cria a janela
+  var win = new Window("dialog", "Adicionar Sigla");
+  win.orientation = "column";
+  win.alignChildren = "center";
 
-    cancelar.onClick = function () {
-      win.close();
-    };
+  win.add(
+    "statictext",
+    undefined,
+    "    Digite a sigla que deseja adicionar:    ."
+  );
+  var input = win.add("edittext", undefined, "");
+  input.characters = 20;
+  input.active = true;
 
-    win.center();
-    win.show();
+  var botoes = win.add("group");
+  var salvar = botoes.add("button", undefined, "Salvar", { name: "ok" });
+  var cancelar = botoes.add("button", undefined, "Cancelar", {
+    name: "cancel",
+  });
+
+  salvar.onClick = function () {
+    var sigla = input.text;
+    salvarSigla(sigla);
+    win.close();
+  };
+
+  cancelar.onClick = function () {
+    win.close();
+  };
+
+  win.center();
+  win.show();
   }
 
   function carregarSiglasDoArquivo() {
@@ -2591,6 +2724,37 @@
     }
   }
 
+  function getParagraphsIncludingTables(doc) {
+    var out = [];
+    var seen = {};
+
+    var stories = doc.stories.everyItem().getElements();
+    for (var s = 0; s < stories.length; s++) {
+        var story = stories[s];
+
+        // Parágrafos "normais" do story
+        var pars = story.paragraphs.everyItem().getElements();
+        for (var p = 0; p < pars.length; p++) {
+            var spec = pars[p].toSpecifier();
+            if (!seen[spec]) { seen[spec] = true; out.push(pars[p]); }
+        }
+
+        // Parágrafos dentro de TABELAS
+        var tables = story.tables.everyItem().getElements();
+        for (var t = 0; t < tables.length; t++) {
+            var cells = tables[t].cells.everyItem().getElements();
+            for (var c = 0; c < cells.length; c++) {
+                var cpars = cells[c].paragraphs.everyItem().getElements();
+                for (var cp = 0; cp < cpars.length; cp++) {
+                    var spec2 = cpars[cp].toSpecifier();
+                    if (!seen[spec2]) { seen[spec2] = true; out.push(cpars[cp]); }
+                }
+            }
+        }
+    }
+    return out;
+  }
+
   function aplicarCapitalizacaoComGREP(
     estilosSelecionados,
     idiomaSelecionado,
@@ -2599,10 +2763,8 @@
   ) {
     try {
       var doc = app.activeDocument;
-      var paragrafos = doc.stories
-        .everyItem()
-        .paragraphs.everyItem()
-        .getElements();
+      var paragrafos = getParagraphsIncludingTables(doc);
+
 
       if (!estilosSelecionados || !(estilosSelecionados instanceof Array)) {
         alert("estilosSelecionados não é um array válido.");
@@ -2732,6 +2894,690 @@
       return 0;
     }
   }
+
+  //* ---------------------------- APLICAÇÃO DE ESTILO ----------------------------
+
+  function telaAplicacaoEstilos() {
+    alertaTemporario("Carregando... ⌛", 2500);
+    var win = new Window("dialog", "Aplicação de Estilos");
+    win.orientation = "column";
+    win.alignChildren = "fill";
+    win.preferredSize = [500, 350];
+
+    var grupoTexto = win.add("group");
+    grupoTexto.alignment = "center";
+    grupoTexto.add(
+      "statictext",
+      undefined,
+      "Escolha os filtros a serem utilizados na aplicação de estilos."
+    );
+
+    var linha = win.add("panel");
+    linha.alignment = "fill";
+
+    // // Checkbox para ignorar Alteração de Caixa
+    // var chkNaoAplicarEstilos = win.add(
+    //   "checkbox",
+    //   undefined,
+    //   "Não aplicar aplicação de estilos"
+    // );
+
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    var grupoPrexifo = win.add("panel", undefined, "");
+    grupoPrexifo.orientation = "column";
+    grupoPrexifo.alignChildren = "fill";
+
+    var tituloGrupo = grupoPrexifo.add("group");
+    tituloGrupo.alignment = "center";
+    tituloGrupo.add("statictext", undefined, "    Escreva um prefixo:    .");
+    var prefixInput = grupoPrexifo.add("edittext", undefined, "");
+    prefixInput.characters = 20;
+    prefixInput.alignment = "center";
+    prefixInput.selection = 0;
+    prefixInput.helpTip = "Selecione a cor para aplicar.";
+    prefixInput.preferredSize = [150, 20];
+
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    var cores = getAllColors(doc);
+
+    var grupoCores = win.add("panel", undefined, "");
+    grupoCores.orientation = "column";
+    grupoCores.alignChildren = "fill";
+
+    var tituloGrupo = grupoCores.add("group");
+    tituloGrupo.alignment = "center";
+    tituloGrupo.add("statictext", undefined, "    Selecione a cor:    .");
+
+    var ddCores = grupoCores.add(
+      "dropdownlist",
+      undefined,
+      ["Nenhuma"].concat(cores)
+    );
+    ddCores.alignment = "center";
+    ddCores.selection = 0;
+    ddCores.helpTip = "Selecione a cor para aplicar.";
+    ddCores.preferredSize = [150, 20];
+
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    var familias = getAllFonts(doc);
+
+    var grupoFE = win.add("panel", undefined, "");
+    grupoFE.orientation = "column";
+    grupoFE.alignChildren = "fill";
+
+    var tituloGrupo = grupoFE.add("group");
+    tituloGrupo.alignment = "center";
+    tituloGrupo.add(
+      "statictext",
+      undefined,
+      "    Selecione a fonte e estilo:    ."
+    );
+
+    var ddFamilia = grupoFE.add(
+      "dropdownlist",
+      undefined,
+      ["Nenhuma"].concat(familias)
+    );
+    
+    ddFamilia.alignment = "center";
+    ddFamilia.selection = 0;
+    ddFamilia.helpTip = "Selecione a família da fonte.";
+    ddFamilia.preferredSize = [150, 20];
+
+    var ddEstilo = grupoFE.add("dropdownlist", undefined, ["Qualquer"]);
+    ddEstilo.alignment = "center";
+    ddEstilo.selection = 0;
+    ddEstilo.helpTip = "Selecione o estilo da fonte.";
+    ddEstilo.preferredSize = [150, 20];
+    ddEstilo.enabled = false;
+
+    var grupoTamanho = grupoFE.add("group");
+    grupoTamanho.alignment = "center";
+    grupoTamanho.add("statictext", undefined, "Tamanho da fonte:");
+    var inputTamanho = grupoTamanho.add("edittext", undefined, "");
+    inputTamanho.characters = 5;
+    inputTamanho.helpTip = "Digite o tamanho da fonte em pontos (ex: 12)";
+    inputTamanho.preferredSize = [35, 20];
+
+    ddFamilia.onChange = function () {
+
+      ddEstilo.removeAll();
+
+      if (ddFamilia.selection && ddFamilia.selection.index > 0) {
+        var fam = ddFamilia.selection.text;
+        var estilos = getFontStylesForFamily(doc, fam);
+        ddEstilo.add("item", "Qualquer");
+        for (var i = 0; i < estilos.length; i++)
+          ddEstilo.add("item", estilos[i]);
+        ddEstilo.selection = 0;
+        ddEstilo.enabled = true; 
+      } else {
+        ddEstilo.add("item", "Qualquer");
+        ddEstilo.selection = 0;
+        ddEstilo.enabled = false;
+      }
+    };
+
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    var grupoEstilos = win.add("panel", undefined, "");
+    grupoEstilos.orientation = "column";
+    grupoEstilos.alignChildren = "center";
+
+    grupoEstilos.add("statictext", undefined, "Aplicar estilo:");
+
+    var todosEstilos = getAllParagraphStyles2(doc); // pega todos os estilos, inclusive dentro de grupos
+    var estiloDropdown = grupoEstilos.add("dropdownlist", undefined, []);
+    estiloDropdown.alignment = "center";
+    for (var j = 0; j < todosEstilos.length; j++) {
+      estiloDropdown.add("item", todosEstilos[j].name);
+    }
+    estiloDropdown.selection = 0;
+    grupoEstilos.preferredSize = [150, 20];
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    var grupoManual = win.add("panel", undefined, "");
+    grupoManual.orientation = "column";
+    grupoManual.alignChildren = "center";
+
+    var chkManual = grupoManual.add(
+      "checkbox",
+      undefined,
+      "Fazer revisão manual"
+    );
+    chkManual.helpTip = "Permite revisão manual antes de aplicar os estilos.";
+
+    //*-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    // Botões
+    var botoes = win.add("group");
+    botoes.alignment = "center";
+    var voltar = botoes.add("button", undefined, "Voltar");
+    var proximo = botoes.add("button", undefined, "Próximo", { name: "ok" });
+    var cancelar = botoes.add("button", undefined, "Cancelar", {
+      name: "cancel",
+    });
+
+    cancelar.onClick = function () {
+      win.close();
+    };
+    voltar.onClick = function () {
+      win.close();
+      TelaInicial();
+    };
+
+    proximo.onClick = function () {
+      win.close();
+      prefixoEscolhido = prefixInput.text !== "" ? prefixInput.text : null;
+
+      corEscolhida =
+        ddCores.selection && ddCores.selection.index > 0
+          ? ddCores.selection.text
+          : null;
+
+      fonteEscolhida =
+        ddFamilia.selection && ddFamilia.selection.index > 0
+          ? ddFamilia.selection.text
+          : null;
+
+      estiloEscolhido =
+        ddEstilo.selection && ddEstilo.selection.index > 0
+          ? ddEstilo.selection.text
+          : null;
+
+      tamanhoEscolhido =
+        inputTamanho.text !== "" ? parseFloat(inputTamanho.text) : null;
+
+      var estiloParaAplicar = estiloDropdown.selection
+        ? todosEstilos[estiloDropdown.selection.index]
+        : null;
+
+      // Guarda em variável global
+      EstiloParagrafoEscolhido =
+        estiloParaAplicar && estiloParaAplicar.isValid
+          ? estiloParaAplicar
+          : null;
+
+      var modoManual = !!chkManual.value;
+
+      aplicarMudancas(
+        doc,
+        prefixoEscolhido,
+        corEscolhida,
+        fonteEscolhida,
+        estiloEscolhido,
+        tamanhoEscolhido,
+        EstiloParagrafoEscolhido,
+        modoManual
+      );
+
+      win.close();
+    };
+
+    win.center();
+    win.show();
+  }
+
+  function numberingTextOf(par) {
+    try {
+      var s = par.bulletsAndNumberingResultText || "";
+      if (s && s.charAt(s.length - 1) === "\t") s = s.substr(0, s.length - 1);
+      return s;
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function buildRegexFromUserPrefix(pfx) {
+    if (!pfx) return null;
+    var esc = pfx.replace(/([\\^$.*+?()[\\]{}|])/g, "\\$1"); // escapa metacaracteres
+    esc = esc.replace(/X+/gi, "\\\\d+"); // XX → \d+
+    return new RegExp("^" + esc, "i"); // ancorado ao início, case-insensitive
+  }
+
+  function getAllParagraphStyles2(doc) {
+    var estilos = [];
+
+    function percorrerGrupo(grupo) {
+      for (var i = 0; i < grupo.paragraphStyles.length; i++) {
+        estilos.push(grupo.paragraphStyles[i]);
+      }
+      for (var j = 0; j < grupo.paragraphStyleGroups.length; j++) {
+        percorrerGrupo(grupo.paragraphStyleGroups[j]);
+      }
+    }
+
+    percorrerGrupo(doc);
+    return estilos;
+  }
+
+  function getAllFonts(doc) {
+    var out = [];
+    var seen = {};
+    var fnts = doc.fonts;
+
+    for (var i = 0; i < fnts.length; i++) {
+      var fam = fnts[i].fontFamily;
+      if (fam && !seen[fam]) {
+        out.push(fam);
+        seen[fam] = true;
+      }
+    }
+    out.sort();
+    return out;
+  }
+
+  function getFontStylesForFamily(doc, family) {
+    var out = [];
+    var seen = {};
+    var fnts = doc.fonts;
+
+    for (var i = 0; i < fnts.length; i++) {
+      var f = fnts[i];
+      if (f.fontFamily === family) {
+        // Algumas versões expõem fontStyleName; outras, styleName/fontStyle
+        var sty = f.fontStyleName || f.styleName || f.fontStyle;
+        if (sty && !seen[sty]) {
+          out.push(sty);
+          seen[sty] = true;
+        }
+      }
+    }
+    out.sort();
+    return out;
+  }
+
+  function getAllColors(doc) {
+    var cores = [];
+    try {
+      for (var i = 0; i < doc.swatches.length; i++) {
+        var sw = doc.swatches[i];
+
+        // Evita pegar [None], [Registration], etc.
+        if (
+          sw.name !== "[None]" &&
+          sw.name !== "[Registration]" &&
+          sw.name !== "[Paper]"
+        ) {
+          cores.push(sw.name);
+        }
+      }
+    } catch (e) {
+      alert("Erro ao obter cores: " + e);
+    }
+    return cores;
+  }
+
+  function safeStartsWith(s, prefix) {
+    if (!s || !prefix) return false;
+    return s.substr(0, prefix.length) === prefix;
+  }
+
+  function firstCharOfParagraph(par) {
+    try {
+      return par.characters && par.characters.length > 0
+        ? par.characters[0]
+        : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function getFontFamilyAndStyleFromChar(ch) {
+    if (!ch) return { family: null, style: null };
+    var f = ch.appliedFont;
+    var family = null,
+      style = null;
+    try {
+      family = f.fontFamily;
+    } catch (e) {}
+    try {
+      style = f.fontStyleName || f.styleName || f.fontStyle;
+    } catch (e) {}
+    return { family: family, style: style };
+  }
+
+  function revisarManualmente(lista, estiloParagrafo) {
+    var idx = 0,
+      alterados = 0,
+      pulados = 0;
+    var aplicarRestantes = false;
+
+    var win = new Window("dialog", "Revisão manual – Aplicação de Estilos");
+    win.orientation = "column";
+    win.alignment = "center";
+    win.preferredSize = [120, 150];
+
+    // Cabeçalho / status
+    var grpHeader = win.add("group");
+    grpHeader.orientation = "row";
+    grpHeader.alignChildren = "center";
+    var lblStatus = grpHeader.add("statictext", undefined, "");
+    lblStatus.characters = 35;
+    lblStatus.justify = "center";
+    
+    // Info de numeração e estilo alvo
+    var grpInfo = win.add("group");
+    grpInfo.orientation = "column";
+    grpInfo.alignChildren = "center";
+    var lblNumero = grpInfo.add("statictext", undefined, "");
+    lblNumero.characters = 35;
+    lblNumero.justify = "center";
+
+    var lblEstilo = grpInfo.add("statictext", undefined, "");
+    lblEstilo.characters = 35;
+    lblEstilo.justify = "center";
+
+    // Botões
+    var grpBtns = win.add("group");
+    grpBtns.alignment = "center";
+    var btnAplicar = grpBtns.add("button", undefined, "Aplicar");
+    var btnPular = grpBtns.add("button", undefined, "Pular");
+    var btnAplicarRest = grpBtns.add("button", undefined, "Aplicar restantes");
+    var btnCancelar = grpBtns.add("button", undefined, "Cancelar", {
+      name: "cancel",
+    });
+
+    function focarParagrafo(p, zoomPct) {
+      try {
+        if (!p) return;
+
+        // Janela: prefere layoutWindows (mais previsível)
+        var win =
+          app.layoutWindows && app.layoutWindows.length
+            ? app.layoutWindows[0]
+            : app.activeWindow;
+
+        // Determina o TextFrame "principal" onde o parágrafo realmente começa/está visível
+        var ip =
+          p.insertionPoints && p.insertionPoints.length
+            ? p.insertionPoints[0]
+            : null;
+        var mainTF =
+          ip && ip.parentTextFrames && ip.parentTextFrames.length
+            ? ip.parentTextFrames[0]
+            : p.parentTextFrames && p.parentTextFrames.length
+            ? p.parentTextFrames[0]
+            : null;
+
+        if (!mainTF) return;
+
+        // Define a página/folha antes de qualquer seleção (evita o piscar)
+        if (mainTF.parentPage) {
+          win.activePage = mainTF.parentPage;
+        } else if (mainTF.parent && mainTF.parent.typename === "Spread") {
+          win.activeSpread = mainTF.parent;
+        }
+
+        try {
+          win.zoomPercentage = zoomPct || 125;
+
+          // centraliza no parágrafo
+          app.select(p);
+          app.selection[0].showText();
+        } catch (e) {}
+
+        // Calcula o centro onde devemos rolar
+        var cx, cy;
+        var frames =
+          p.parentTextFrames && p.parentTextFrames.length
+            ? p.parentTextFrames
+            : [mainTF];
+
+        // Se todos os frames estão na mesma página, usamos a união das bounds para centralizar melhor
+        var samePage = true;
+        for (var i = 0; i < frames.length; i++) {
+          if (
+            !frames[i].parentPage ||
+            frames[i].parentPage != mainTF.parentPage
+          ) {
+            samePage = false;
+            break;
+          }
+        }
+
+        var bounds;
+        if (frames.length > 1 && samePage) {
+          bounds = frames[0].visibleBounds.slice(); // [top, left, bottom, right]
+          for (var j = 1; j < frames.length; j++) {
+            var vb = frames[j].visibleBounds;
+            bounds[0] = Math.min(bounds[0], vb[0]); // top
+            bounds[1] = Math.min(bounds[1], vb[1]); // left
+            bounds[2] = Math.max(bounds[2], vb[2]); // bottom
+            bounds[3] = Math.max(bounds[3], vb[3]); // right
+          }
+        } else {
+          // Apenas o frame principal
+          bounds = mainTF.visibleBounds;
+        }
+
+        cx = (bounds[1] + bounds[3]) / 2; // (left + right) / 2
+        cy = (bounds[0] + bounds[2]) / 2; // (top + bottom) / 2
+
+        try {
+          win.scrollCoordinates = [cx, cy];
+        } catch (e) {}
+
+        try {
+          app.select(p);
+        } catch (e) {}
+      } catch (err) {
+        $.writeln("Erro em focarParagrafo: " + err);
+      }
+    }
+
+    function carregar(i) {
+      var p = lista[i];
+      focarParagrafo(p);
+
+      var num = numberingTextOf(p);
+      var cont = "";
+      try {
+        cont = p.contents || "";
+      } catch (e) {}
+
+      lblStatus.text = "Ocorrência " + (i + 1) + " de " + lista.length;
+      lblNumero.text = num ? "Numeração: " + num : "Sem numeração automática";
+      lblEstilo.text = "Aplicar estilo: " + estiloParagrafo.name;
+    }
+
+    btnAplicar.onClick = function () {
+      try {
+        lista[idx].applyParagraphStyle(estiloParagrafo, true);
+        alterados++;
+      } catch (e) {
+        pulados++;
+      }
+      idx++;
+      if (idx >= lista.length) {
+        win.close();
+      } else {
+        carregar(idx);
+      }
+    };
+
+    btnPular.onClick = function () {
+      pulados++;
+      idx++;
+      if (idx >= lista.length) {
+        win.close();
+      } else {
+        carregar(idx);
+      }
+    };
+
+    btnAplicarRest.onClick = function () {
+      aplicarRestantes = true;
+      win.close();
+    };
+
+    btnCancelar.onClick = function () {
+      win.close();
+    };
+
+    carregar(0);
+    win.center();
+    win.show();
+
+    if (aplicarRestantes && idx < lista.length) {
+      for (var k = idx; k < lista.length; k++) {
+        try {
+          lista[k].applyParagraphStyle(estiloParagrafo, true);
+          alterados++;
+        } catch (e) {
+          pulados++;
+        }
+      }
+    } else {
+      if (idx < lista.length) {
+        pulados += lista.length - idx;
+      }
+    }
+
+    return { alterados: alterados, ignorados: pulados };
+  }
+
+  function aplicarMudancas(
+    doc,
+    prefixoEscolhido,
+    corEscolhida,
+    fonteEscolhida,
+    estiloEscolhido,
+    tamanhoEscolhido,
+    EstiloParagrafoEscolhido,
+    modoManual
+  ) {
+    app.doScript(
+      function () {
+        var total = 0,
+          alterados = 0,
+          ignorados = 0;
+        var candidatos = [];
+
+        function processarParagrafo(paragrafo) {
+          total++;
+          var texto = "";
+          try {
+            texto = paragrafo.contents || "";
+          } catch (e) {}
+
+          var atende = true;
+
+          // --- filtro por prefixo
+          if (prefixoEscolhido && atende) {
+            var numTxt = numberingTextOf(paragrafo);
+            var re = buildRegexFromUserPrefix(prefixoEscolhido);
+            if (numTxt) {
+              if (re && !re.test(numTxt)) atende = false;
+            } else {
+              if (!safeStartsWith(texto, prefixoEscolhido)) atende = false;
+            }
+          }
+
+          var ch = firstCharOfParagraph(paragrafo);
+
+          // --- filtro por fonte/estilo
+          if (atende && (fonteEscolhida || estiloEscolhido)) {
+            var fs = getFontFamilyAndStyleFromChar(ch);
+            if (fonteEscolhida && fs.family !== fonteEscolhida) atende = false;
+            if (estiloEscolhido && fs.style !== estiloEscolhido) atende = false;
+          }
+
+          // --- filtro por tamanho
+          if (atende && tamanhoEscolhido != null) {
+            var pt = null;
+            try {
+              pt = ch ? ch.pointSize : null;
+            } catch (e) {}
+            if (pt !== tamanhoEscolhido) atende = false;
+          }
+
+          // --- filtro por cor
+          if (atende && corEscolhida) {
+            var colorName = null;
+            try {
+              colorName =
+                ch && ch.fillColor && ch.fillColor.name
+                  ? ch.fillColor.name
+                  : null;
+            } catch (e) {}
+            if (colorName !== corEscolhida) atende = false;
+          }
+
+          // --- aplicar estilo
+          if (
+            atende &&
+            EstiloParagrafoEscolhido &&
+            EstiloParagrafoEscolhido.isValid
+          ) {
+            if (modoManual) {
+              candidatos.push(paragrafo);
+            } else {
+              try {
+                paragrafo.applyParagraphStyle(EstiloParagrafoEscolhido, true);
+                alterados++;
+              } catch (e) {
+                ignorados++;
+              }
+            }
+          } else {
+            ignorados++;
+          }
+        }
+
+        // ----------------- LOOP PRINCIPAL -----------------
+        for (var i = 0; i < doc.stories.length; i++) {
+          var story = doc.stories[i];
+
+          // Parágrafos normais
+          for (var j = 0; j < story.paragraphs.length; j++) {
+            processarParagrafo(story.paragraphs[j]);
+          }
+
+          // Parágrafos dentro de tabelas
+          for (var t = 0; t < story.tables.length; t++) {
+            var tabela = story.tables[t];
+            for (var l = 0; l < tabela.cells.length; l++) {
+              var celula = tabela.cells[l];
+              for (var p = 0; p < celula.paragraphs.length; p++) {
+                processarParagrafo(celula.paragraphs[p]);
+              }
+            }
+          }
+        }
+
+        // Se for manual, abre a revisão
+        if (modoManual && candidatos.length > 0) {
+          var res = revisarManualmente(candidatos, EstiloParagrafoEscolhido);
+          alterados += res.alterados;
+          ignorados += res.ignorados;
+        }
+
+        // alert(
+        //   "Aplicação de estilos concluída!\n\n" +
+        //     "Total de parágrafos analisados: " +
+        //     total +
+        //     "\n" +
+        //     "Parágrafos alterados: " +
+        //     alterados +
+        //     "\n" +
+        //     "Parágrafos ignorados: " +
+        //     ignorados
+        // );
+      },
+      ScriptLanguage.JAVASCRIPT,
+      undefined,
+      UndoModes.ENTIRE_SCRIPT,
+      "Aplicação de Estilos"
+    );
+  }
+
+  //#region End
+  //* ---------------------------- End ----------------------------
+  
 
   TelaInicial();
 })();
