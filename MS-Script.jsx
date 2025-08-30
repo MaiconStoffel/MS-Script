@@ -23,12 +23,10 @@
   //* - [✓] - Verificar pra colocar a função de Ponto Final em Tabela na soma de tempo total -> Passar ela pela tela final e executar
   //* - [✓] - Verificar o motivo da funcao de capitalização aparece 0 no tempo salvo
   //! - [X] - Verificar de colocar a funcao da aplicação de estilos na soma de tempo total - Não tem motivo de passar ela pela tela final e nem executar, mas podemos
-  //!        fazer ela mostrar a quantidade de mudanças na tela de resultado final e fazer o calculo do tempo salvo
-   
-  // TODO - [] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
-  //^            Testar com o aplicativo "Zint", pelo visto ele cria o codigo 2d datamatrix, podemos automatizar para ele pegar o numero que o 
-  //^            usuário digitar e receber na volta o png do codigo
-
+  //!        fazer ela mostrar a quantidade de mudanças na tela de resultado final e fazer o calculo do tempo salvo   
+  //* TODO - [X] - Verificar se é possível criar uma função que gere o codigo 2D pra colocar no documento e que passe o 2D direto para a pasta de vínculos do documento 
+  
+  //^ -> AJUSTAR O CAMINHO DO ZINT PELA FUNCAO DE AJUSTE DE CAMINHO, VER SE NAO DA PARA INTEGRAR O AJUSTE DO CAMINHO NA FUNCAO DO CODIGO
 
   // TODO - [] - Passar funcao por funcao fazendo uma verificacao do codigo e vendo se funciona tudo certinho
    
